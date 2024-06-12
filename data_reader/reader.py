@@ -2,6 +2,7 @@
 import czifile    
 import cv2
 import numpy as np
+from skimage import io
 
 class reader:
     def __init__(self, root_dir, input_dir):
@@ -14,6 +15,16 @@ class reader:
         #czi = czifile.CziFile(path) #czi.axes -> STCYX0
         img_stack = czifile.imread(self.input_path)
         img_stack = img_stack[0,:,0,:,:,0]
+        return img_stack
+    
+        '''
+    Read in .CZI image stack and return it in the format: (t,y,x)
+    '''
+    def read_zvi(self):
+        with czifile.CziFile(self.input_path) as czi:
+            # Get the image data as a numpy array
+            img_stack = czi.asarray()
+
         return img_stack
 
     '''

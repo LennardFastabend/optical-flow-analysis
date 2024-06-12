@@ -85,6 +85,28 @@ class visualizer:
         fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close(fig)    # close the figure window
 
+    def saveDivergence(self, div, title, filename):
+        fig, ax = plt.subplots(1)
+        plt.imshow(div, cmap='seismic', vmin=-1, vmax=1)
+        plt.title(title)
+        ''''
+        cbar = plt.colorbar()
+        cbar.set_label('h$^{-1}$', labelpad=-40, y=1.06, rotation=0)
+        '''
+
+        # Turn off axis ticks and labels
+        plt.tick_params(axis='both', which='both', bottom=False, top=False, left=False, right=False,
+                    labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+
+        # Show only the frame around the data
+        plt.gca().spines['top'].set_visible(True)
+        plt.gca().spines['right'].set_visible(True)
+        plt.gca().spines['bottom'].set_visible(True)
+        plt.gca().spines['left'].set_visible(True)
+
+        fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file
+        plt.close(fig)    # close the figure window
+
     def create_video(self, fps=30, interval=1):
         def natural_sort_key(s):
             import re

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 '''
-class opticalflow:
+class opticalflow_calculator:
     def __init__(self, image_stack=None, flowfield_stack=None, divergence_stack=None):
         self.image_stack = image_stack
         self.flowfield_stack = flowfield_stack
@@ -12,12 +12,12 @@ class opticalflow:
 Calculate a FlowField Stack (one vector field for each pair of previous and next image)
 shape = (t,y,x,component of vector)
 '''
-def FlowFieldStack(img_stack, t0, tfin, dt=1):
+def FlowFieldStack(img_stack, par_dict, t0, tfin, dt=1):
     FlowField_list = []
     for t in range(t0, tfin, dt):
         img0 = img_stack[t, :, :]
         img1 = img_stack[t+dt, :, :]
-        flow = cv2.calcOpticalFlowFarneback(img0, img1, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+        flow = cv2.calcOpticalFlowFarneback(img0, img1, None, par_dict["pyr_scale"], par_dict["levels"], par_dict["winsize"], par_dict["iterations"], par_dict["poly_n"], par_dict["poly_sigma"], par_dict["flags"])
         FlowField_list.append(flow)
 
     FlowField_stack = np.stack(FlowField_list, axis=0)

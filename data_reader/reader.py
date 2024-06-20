@@ -17,7 +17,7 @@ class reader:
         img_stack = img_stack[0,:,0,:,:,0]
         return img_stack
     
-        '''
+    '''
     Read in .CZI image stack and return it in the format: (t,y,x)
     '''
     def read_zvi(self):

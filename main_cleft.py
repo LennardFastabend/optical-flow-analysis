@@ -8,21 +8,24 @@ from pathlib import Path
 import numpy as np
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
-input_dir = Path(r'data\PhaseContrastCleft\P01\input\raw_data\P08#39_live_191127_1812_MB-0003_W03-P01-1-bottom.tif') #relative path to input data
-#input_dir = Path(r'data\PhaseContrastCleft\P01\input\P08#39_live_W03-P01.avi')
-output_dir = Path(r'data\PhaseContrastCleft\P01\output_bottom')
+#input_dir = Path(r'data\PhaseContrastCleft\P01\input\raw_data\P08#39_live_191127_1812_MB-0003_W03-P01-1-bottom.tif') #relative path to input data
+input_dir = Path(r'data\PhaseContrastCleft\P01\input\P08#39_live_W03-P01.avi')
+output_dir = Path(r'data\PhaseContrastCleft\P01\output_win5_dt3')
 
-dT=1
-Tmax = 30#image_stack.shape[0]-1
+dT=3
+Tmax = 100#image_stack.shape[0]-1
 
 input_reader = reader(root_dir, input_dir)
-#image_stack = input_reader.read_avi()
-image_stack = input_reader.read_tif()
+image_stack = input_reader.read_avi()
+#image_stack = input_reader.read_tif()
 
+print(image_stack.shape)
+print(type(image_stack))
 
+sys.exit()
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
-                        "winsize": 15,
+                        "winsize": 5,#15,
                         "iterations": 3,
                         "poly_n": 5,
                         "poly_sigma": 1.2,

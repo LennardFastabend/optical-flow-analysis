@@ -19,7 +19,7 @@ class visualizer:
         fig, ax = plt.subplots(1)
         plt.imshow(img, cmap='gray', vmin=0, vmax=255) #origin="lower"
         plt.title(title)
-        plt.colorbar()
+        #plt.colorbar()
         plt.xlabel('x')
         plt.ylabel('y')
         fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file

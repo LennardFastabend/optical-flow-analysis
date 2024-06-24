@@ -13,6 +13,7 @@ import numpy as np
 class visualizer:
     def __init__(self, root_dir, output_dir):
         self.output_path = root_dir / output_dir
+        print('Initialized Visualizer with Path:', self.output_path)
         self.output_path.mkdir(parents=True, exist_ok=True)
 
     def saveImage(self, img, title, filename):

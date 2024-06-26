@@ -166,7 +166,6 @@ def SegementGrowthFront(image):
     return binary_mask, filtered_image, contour_line
 
 def SegementCleft(image):
-    
     # Smooth image
     kernel_size=(15,15)
     sigma=5

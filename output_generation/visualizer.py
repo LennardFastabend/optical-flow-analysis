@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 import numpy as np
-
+import pandas as pd
 
 class visualizer:
     def __init__(self, root_dir, output_dir):
@@ -107,6 +107,47 @@ class visualizer:
 
         fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close(fig)    # close the figure window
+
+    def saveSegmentationMasks(self, image, front_contour_line, cleft_contour_line, title, filename):
+        plt.figure(figsize=(10, 5))
+        plt.title(title)
+        plt.imshow(image, cmap='gray')
+        plt.plot(front_contour_line[:, 0], front_contour_line[:, 1], marker='.', markersize=1, color='red', linestyle='-', linewidth=1)
+        plt.plot(cleft_contour_line[:, 0], cleft_contour_line[:, 1], marker='.', markersize=1, color='orange', linestyle='-', linewidth=1)
+        plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
+        plt.close()    # close the figure window
+
+    def saveGeometricQuantification(self,df, bin_num, title, filename):
+        # Define the bins for the distance values
+        bins = np.linspace(df['distance'].min(), df['distance'].max(), num=bin_num)  # Adjust the number of bins as needed
+
+        # Bin the distance values
+        df['binned_distance'] = pd.cut(df['distance'], bins, include_lowest=True)
+
+        # Calculate the mean and standard deviation for each binned distance
+        binned_stats = df.groupby('binned_distance')['displacement'].agg(['mean', 'std']).reset_index()
+
+        # Plot the binned data with error bars
+        plt.figure(figsize=(10, 5))
+        plt.errorbar(
+            binned_stats['binned_distance'].astype(str),
+            binned_stats['mean'],
+            yerr=binned_stats['std'],
+            fmt='o',
+            ecolor='r',
+            capsize=5,
+            label='Mean Displacement with Std. Dev.'
+        )
+        plt.xlabel('Distance Bin')
+        plt.ylabel('Mean Displacement')
+        plt.title(title)
+        plt.xticks(rotation=270)  # Rotate x-axis labels for better readability
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
+        plt.close()    # close the figure window
+
 
     def create_video(self, fps=30, interval=1):
         def natural_sort_key(s):

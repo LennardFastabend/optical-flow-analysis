@@ -9,13 +9,13 @@ import data_reader.reader as reader
 from output_generation.visualizer import visualizer
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
-input_dir = Path(r'data\PhaseContrastCleft\P01\input\P08#39_live_W03-P01.avi')
+input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi')
 output_path = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis\data\PhaseContrastCleft\P01\segmentation')
 
 image_reader = reader.reader(root_dir, input_dir)
 image_stack = image_reader.read_avi()
 #'''
-for t in np.arange(0,351,1):
+for t in np.arange(0,350,5):
     image = image_stack[t,...]
     front_mask,filtered_image_front,front_contour_line = SegementGrowthFront(image)
     cleft_mask,filtered_image_cleft,cleft_contour_line = SegementCleft(image)
@@ -42,7 +42,3 @@ for t in np.arange(0,351,1):
 
     plt.show()
 #'''
-
-#output_dir = Path(r'data\PhaseContrastCleft\P01\segmentation')
-#vis = visualizer(root_dir, output_dir)
-#vis.create_video()

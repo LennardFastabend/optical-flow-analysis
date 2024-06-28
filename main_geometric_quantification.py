@@ -15,7 +15,7 @@ import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
 input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi') #Read in Aligned Data!
-output_dir = Path(r'data\PhaseContrastCleft\P01\output_geometric_quantification')
+output_dir = Path(r'data\PhaseContrastCleft\P01\output_geometric_quantification_test')
 
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
@@ -27,7 +27,7 @@ image_stack = image_stack[:, crop_size:y-crop_size, crop_size:x-crop_size]
 
 ### calculate Example FlowFields for the defined time
 dT=3
-Tmax = 100
+Tmax = 350
 
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
@@ -67,7 +67,12 @@ defmap_generator.create_video(fps=10)
 '''
 ### Example Analysis for frame T
 # get image
+#
+bin_size = 20
+max_shown_distance = 1000
+max_shown_displacement = 15
 for T in np.arange(0,Tmax):
+
     image = image_stack[T,...]
 
     # Calculate a Deformation Map
@@ -88,10 +93,12 @@ for T in np.arange(0,Tmax):
     # quantify deformation as a function of distance ti the growth front
     df = geoquant.GeometricQuantification(defmap, tissue_mask, front_contour_line, front_center, dx=100)
 
-    bin_num=50
     title = 'Mean Displacement vs. Binned Distance at Time: '+str(T)
     filename = 'geoquant' + str(T)
-    geoquant_generator.saveGeometricQuantification(df, bin_num, title, filename)
+    geoquant_generator.saveGeometricQuantification(df, bin_size, max_shown_distance, max_shown_displacement, title, filename)
+    #defmap_generator.saveDeformationMap(defmap, min=0, max=10, title='DefMap at Time: '+str(T)+'-'+str(T+dT), filename='DefMap'+str(T))
+    #segmentation_generator.saveSegmentationMasks(image, front_contour_line, cleft_contour_line, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
+    #flowfield_generator.saveFlowField(image_stack[T,...], meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=20, epsilon=0)
 
 
 
@@ -132,7 +139,13 @@ print('Min Displacement:', df['displacement'].min())
 # Only consider deformations in he area of the tissue-mask
 masked_defmap = defmap * tissue_mask/255
 
-plt.imshow(tissue_mask, cmap='gray')
+plt.imshow(masked_defmap, cmap='plasma', vmin=0, vmax=10)
+
+plt.plot(front_contour_line[:, 0], front_contour_line[:, 1], marker='.', markersize=1, color='red', linestyle='-', linewidth=1)
+plt.plot(cleft_contour_line[:, 0], cleft_contour_line[:, 1], marker='.', markersize=1, color='orange', linestyle='-', linewidth=1)
 plt.plot(front_center[0], front_center[1], "og", markersize=5)
-plt.show()
+filename = 'MaskedDefMap'+str(T)
+plt.savefig(root_dir / output_dir / filename, dpi=600)   # save the figure to file
+plt.close()    # close the figure window
+
 '''

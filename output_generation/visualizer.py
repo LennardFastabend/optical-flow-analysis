@@ -117,9 +117,11 @@ class visualizer:
         plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close()    # close the figure window
 
-    def saveGeometricQuantification(self,df, bin_num, title, filename):
+    def saveGeometricQuantification(self,df, bin_size, max_shown_distance, max_shown_displacement, title, filename):
         # Define the bins for the distance values
-        bins = np.linspace(df['distance'].min(), df['distance'].max(), num=bin_num)  # Adjust the number of bins as needed
+        min_distance = df['distance'].min()
+        max_distance = df['distance'].max()
+        bins = np.arange(min_distance, max_distance + bin_size, bin_size)
 
         # Bin the distance values
         df['binned_distance'] = pd.cut(df['distance'], bins, include_lowest=True)
@@ -138,6 +140,11 @@ class visualizer:
             capsize=5,
             label='Mean Displacement with Std. Dev.'
         )
+
+        # Set consistent axis limits
+        plt.xlim(-1,max_shown_distance/bin_size)
+        plt.ylim(0,max_shown_displacement)
+
         plt.xlabel('Distance Bin')
         plt.ylabel('Mean Displacement')
         plt.title(title)
@@ -147,7 +154,6 @@ class visualizer:
         plt.tight_layout()
         plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close()    # close the figure window
-
 
     def create_video(self, fps=30, interval=1):
         def natural_sort_key(s):

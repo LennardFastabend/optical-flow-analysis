@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import label
 
+from skimage import feature
+
 def IntensitySegmentation(image, threshold_value):
      # Convert the image to grayscale if it is not already
     if len(image.shape) == 3 and image.shape[2] == 3:
@@ -142,6 +144,16 @@ def SobelFilter(image, kernel_size):
     sobel_edges = cv2.normalize(sobel_edges, None, 0, 255, cv2.NORM_MINMAX)
     sobel_edges = np.uint8(sobel_edges)
     return sobel_edges
+
+def CannyEdgeDetection(image):
+    # Apply the Canny edge detection filter
+    #edges = cv2.Canny(image, threshold1=100, threshold2=400)
+    edges = feature.canny(image, sigma = 5)
+
+    # Convert boolean array to uint8
+    edges = (edges * 255).astype(np.uint8)
+
+    return edges
 
 ############################################################################################
     

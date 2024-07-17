@@ -21,8 +21,9 @@ class visualizer:
         plt.imshow(img, cmap='gray', vmin=0, vmax=255) #origin="lower"
         plt.title(title)
         #plt.colorbar()
-        plt.xlabel('x')
-        plt.ylabel('y')
+        #plt.xlabel('x')
+        #plt.ylabel('y')
+        plt.axis('off')
         fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close(fig)    # close the figure window
 
@@ -86,12 +87,91 @@ class visualizer:
         fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close(fig)    # close the figure window
 
-    def saveDivergence(self, div, title, filename):
+
+    '''
+    Visualise a Flow Field-stack by calculate mean displacements ofer the given FlowField_stack and
+    converting the (mean) vector for each pixel into a color based on the direction/angle and the magnitude of the vector 
+    (convert vector to HSV and hsv to rgb)
+    angle of vector -> hue (Farbton)
+    magnitude of vector -> saturation and brightness
+    max_magnitude defines the maximum 
+    '''
+    def saveHSVcolormap(self, max_magnitude, filename):
+        def VectorToRGB(angle, magnitude, max_magnitude):
+            angle = (angle + np.pi) / (2 * np.pi)  # Normalize angle to [0, 1]
+            angle = 1 - angle  # Flip the colorwheel on the x-axis
+
+            magnitude = np.clip(magnitude / max_magnitude, 0, 1)  # Normalize and clip magnitude to [0, 1]
+
+            rgb = matplotlib.colors.hsv_to_rgb((angle, magnitude, magnitude))
+
+            return rgb
+        
+        #plot: hsv colormap
+        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(6, 6))
+
+        n = 200
+        t = np.linspace(-np.pi, np.pi, n)
+        r = np.linspace(0, max_magnitude, n)
+        tg, rg = np.meshgrid(t, r)
+
+        # Create an RGB colormap based on vector angles and magnitudes
+        c = np.array([VectorToRGB(t, r, max_magnitude) for t, r in zip(tg.flatten(), rg.flatten())])
+        cv = c.reshape((n, n, 3))
+
+        m = ax.pcolormesh(t, r, cv[:, :, 1], color=c, shading='auto')
+        m.set_array(None)
+
+        ax.tick_params(axis='y', colors='#C6C6C6')
+
+        # Save the figure to a file
+        fig.savefig(self.output_path / filename, dpi=600)
+        plt.close(fig)
+
+    def saveDeformationMapRGB(self, FlowField, max_magnitude, title, filename):
+        # Define the FlowField-components in x- and y-direction
+        Fx = FlowField[:, :, 0]
+        Fy = FlowField[:, :, 1]
+
+        # Calculate the magnitudes of the vectors
+        magnitudes = np.sqrt(np.square(Fx) + np.square(Fy))
+        magnitudes = np.clip(magnitudes / max_magnitude, 0, 1)  # Normalize magnitude and clip to [0, 1]
+        
+        # Calculate the angles of all vectors
+        angles = np.arctan2(Fy, Fx)
+        angles = (angles + np.pi) / (2 * np.pi)  # Normalize angles to [0, 1]
+
+        # Define a corresponding image in HSV colorspace
+        hsv_image = np.zeros((FlowField.shape[0], FlowField.shape[1], 3))
+        hsv_image[..., 0] = angles  # Hue
+        hsv_image[..., 1] = magnitudes  # Saturation
+        hsv_image[..., 2] = magnitudes  # Value
+
+        # Convert the HSV image to RGB
+        rgb_image = matplotlib.colors.hsv_to_rgb(hsv_image)
+
         fig, ax = plt.subplots(1)
-        plt.imshow(div, cmap='seismic', vmin=-1, vmax=1)
+        plt.imshow(rgb_image)
         plt.title(title)
-        ''''
+        plt.axis('off')
+
+        # Save the figure to a file
+        fig.savefig(self.output_path / filename, dpi=600)
+        plt.close(fig)
+    
+    def saveDivergence(self, div, title, filename):
+        # Determine the maximum absolute value in div
+        max_abs_value = np.max(np.abs(div))
+        # Set vmin and vmax to be symmetric around zero
+        vmin = -max_abs_value/4
+        vmax = max_abs_value/4
+
+        fig, ax = plt.subplots(1)
+        plt.imshow(div, cmap='seismic', vmin=vmin, vmax=vmax)
+        plt.title(title)
+        
         cbar = plt.colorbar()
+        '''
         cbar.set_label('h$^{-1}$', labelpad=-40, y=1.06, rotation=0)
         '''
 

@@ -1,9 +1,17 @@
 import cv2
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import label
 
+# Set the environment variable to avoid memory leak warning
+os.environ["OMP_NUM_THREADS"] = "1"
+
+
 from skimage import feature
+from sklearn.cluster import KMeans
+
+
 
 def IntensitySegmentation(image, threshold_value):
      # Convert the image to grayscale if it is not already
@@ -131,7 +139,7 @@ def extract_contour_line(binary_mask):
     else:
         return None
 
-
+##########################################################################
 def GaussFilter(image, kernel_size, sigma):
     filtered_image = cv2.GaussianBlur(image, kernel_size, sigma)
     return filtered_image
@@ -145,15 +153,128 @@ def SobelFilter(image, kernel_size):
     sobel_edges = np.uint8(sobel_edges)
     return sobel_edges
 
-def CannyEdgeDetection(image):
+
+###################
+### Cleft Edges ###
+###################
+def CannyEdgeDetection(image, threshold1=0, threshold2=45):
     # Apply the Canny edge detection filter
-    #edges = cv2.Canny(image, threshold1=100, threshold2=400)
-    edges = feature.canny(image, sigma = 5)
+    edges = cv2.Canny(image, threshold1=threshold1, threshold2=threshold2)
+    #edges = feature.canny(image, sigma = 5)
 
     # Convert boolean array to uint8
-    edges = (edges * 255).astype(np.uint8)
+    #edges = (edges * 255).astype(np.uint8)
 
     return edges
+
+def HoughTransform(edges, threshold=125):
+    # Apply Hough Line Transform
+    lines = cv2.HoughLines(edges, rho=1, theta=np.pi/(180*2), threshold=threshold)
+    # Convert lines to a more understandable format and sort by votes
+    lines = sorted(lines, key=lambda line: line[0][0], reverse=True)  # Sorting by rho value
+    # Select the top lines
+    #lines = lines[:5] # this makes it worse
+    return lines
+
+def cluster_lines(lines, num_clusters=2):
+    # Extract (rho, theta) parameters from lines
+    rho_theta = np.array([[line[0][0], line[0][1]] for line in lines])
+
+    # Apply K-means clustering
+    kmeans = KMeans(n_clusters=num_clusters)
+    kmeans.fit(rho_theta)
+    labels = kmeans.labels_
+
+    # Separate the lines into clusters
+    clusters = [[] for _ in range(num_clusters)]
+    for label, line in zip(labels, lines):
+        clusters[label].append(line)
+
+    return clusters
+
+def compute_representative_line(cluster):
+    # Compute average rho and theta for the cluster
+    rho_avg = np.mean([line[0][0] for line in cluster])
+    theta_avg = np.mean([line[0][1] for line in cluster])
+    return [[rho_avg, theta_avg]]  # Return in the same format as HoughLines output
+
+def draw_line_image(image, lines, linecolor=(0,0,255)):
+    # Create a copy of the original image to draw lines on
+    line_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
+    for line in lines:
+        rho, theta = line[0]
+        a = np.cos(theta)
+        b = np.sin(theta)
+        x0 = a * rho
+        y0 = b * rho
+        x1 = int(x0 + 2000 * (-b))
+        y1 = int(y0 + 2000 * (a))
+        x2 = int(x0 - 2000 * (-b))
+        y2 = int(y0 - 2000 * (a))
+        cv2.line(line_image, (x1, y1), (x2, y2), linecolor, 2)
+    return line_image
+
+def compute_intersection(lines):
+    # Extract rho and theta for both lines
+    rho1, theta1 = lines[0][0]
+    rho2, theta2 = lines[1][0]
+
+    # Convert polar coordinates to Cartesian line equation coefficients
+    A1 = np.cos(theta1)
+    B1 = np.sin(theta1)
+    C1 = rho1
+
+    A2 = np.cos(theta2)
+    B2 = np.sin(theta2)
+    C2 = rho2
+
+    # Solve the system of linear equations to find the intersection point
+    A = np.array([[A1, B1], [A2, B2]])
+    C = np.array([C1, C2])
+
+    # Check if lines are parallel (det(A) == 0)
+    if np.linalg.det(A) == 0:
+        return None  # Lines are parallel or coincident
+
+    # Calculate intersection point
+    intersection = np.linalg.solve(A, C)
+    
+    return intersection
+
+def create_triangle_mask(image, lines, intersection):
+    # Image dimensions
+    height, width = image.shape
+
+    # Points on the lines
+    rho1, theta1 = lines[0][0]
+    rho2, theta2 = lines[1][0]
+
+    # Compute two points on each line far enough to cover the image
+    x0_1 = np.cos(theta1) * rho1
+    y0_1 = np.sin(theta1) * rho1
+    point1_line1 = (int(x0_1 + 1000 * (-np.sin(theta1))), int(y0_1 + 1000 * (np.cos(theta1))))
+    point2_line1 = (int(x0_1 - 1000 * (-np.sin(theta1))), int(y0_1 - 1000 * (np.cos(theta1))))
+
+    x0_2 = np.cos(theta2) * rho2
+    y0_2 = np.sin(theta2) * rho2
+    point1_line2 = (int(x0_2 + 1000 * (-np.sin(theta2))), int(y0_2 + 1000 * (np.cos(theta2))))
+    point2_line2 = (int(x0_2 - 1000 * (-np.sin(theta2))), int(y0_2 - 1000 * (np.cos(theta2))))
+
+    # Create a mask with zeros (black)
+    mask = np.zeros((height, width), dtype=np.uint8)
+
+    # Define triangle vertices
+    triangle_vertices = np.array([[
+        (int(intersection[0]), int(intersection[1])),  # Intersection point
+        point1_line1,
+        point1_line2
+    ]], dtype=np.int32)
+
+    # Fill the triangle on the mask with white (255)
+    cv2.fillPoly(mask, triangle_vertices, 255)
+
+    return mask
 
 ############################################################################################
     
@@ -169,13 +290,14 @@ def SegementGrowthFront(image):
 
     check_point = (100,500)
 
-    threshold = 10
+    threshold = 20
     binary_mask = IntensitySegmentation(filtered_image, threshold)
     binary_mask = invert_mask(binary_mask)
     binary_mask = keep_contour_with_point(binary_mask, check_point)
     contour_line = extract_contour_line(binary_mask)
 
     return binary_mask, filtered_image, contour_line
+
 
 def SegementCleft(image):
     # Smooth image
@@ -189,11 +311,6 @@ def SegementCleft(image):
     contour_line = extract_contour_line(binary_mask)
     binary_mask = invert_mask(binary_mask)
 
-    #check_point = (100,500)
-    #if binary_mask[check_point[1], check_point[0]] == 0:
-        #binary_mask = invert_mask(binary_mask)
-        #binary_mask = remove_contour_with_point(binary_mask, check_point)
-        #binary_mask = invert_mask(binary_mask)
-
 
     return binary_mask, filtered_image, contour_line
+#############################################################################################

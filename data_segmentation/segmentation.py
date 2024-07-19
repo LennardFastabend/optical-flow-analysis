@@ -2,6 +2,7 @@ import cv2
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.ndimage
 from scipy.ndimage import label
 
 # Set the environment variable to avoid memory leak warning
@@ -276,8 +277,38 @@ def create_triangle_mask(image, lines, intersection):
 
     return mask
 
-############################################################################################
+
+############################################################################
+def smooth_contour(contour_points, sigma=2):
+    """
+    Smooths the contour points using Gaussian smoothing.
     
+    Parameters:
+    - contour_points (np.ndarray): The input contour points as a Nx2 array.
+    - sigma (float): The standard deviation for Gaussian kernel.
+    
+    Returns:
+    - smoothed_contour (np.ndarray): The smoothed contour points as a Nx2 array.
+    """
+    # Discard points with an x value of 0
+    contour_points = contour_points[contour_points[:, 0] != 0]
+    
+    # Extract x and y coordinates
+    x = contour_points[:, 0]
+    y = contour_points[:, 1]
+    
+    # Apply Gaussian smoothing
+    smoothed_x = scipy.ndimage.gaussian_filter1d(x, sigma=sigma)
+    smoothed_y = scipy.ndimage.gaussian_filter1d(y, sigma=sigma)
+    
+    # Combine the smoothed x and y coordinates
+    smoothed_contour = np.vstack((smoothed_x, smoothed_y)).T
+    
+    return smoothed_contour
+
+'''
+############################################################################################
+### Old Version of Segmentation ###
 def SegementGrowthFront(image):
     # Apply Sobel filter to detect edges
     kernel_size_sobel = 3
@@ -314,3 +345,4 @@ def SegementCleft(image):
 
     return binary_mask, filtered_image, contour_line
 #############################################################################################
+'''

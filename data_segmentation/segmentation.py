@@ -142,6 +142,7 @@ def extract_contour_line(binary_mask):
 
 ##########################################################################
 def GaussFilter(image, kernel_size, sigma):
+    kernel_size = (kernel_size,kernel_size)
     filtered_image = cv2.GaussianBlur(image, kernel_size, sigma)
     return filtered_image
 
@@ -305,6 +306,74 @@ def smooth_contour(contour_points, sigma=2):
     smoothed_contour = np.vstack((smoothed_x, smoothed_y)).T
     
     return smoothed_contour
+
+############################################################################
+
+def Segmentation(image, segpar):
+    '''
+    This Segmentation takes an input image + segmantation_patrameter_dictionary, 
+    to create masks and contour lines of the cleft edges and growth front
+
+    Note: The Segmentation only works if the cleft opens to the right side of the image:
+    Otherwise the definition of the 'check_point' var has to be changed, or the image has to be flipped!
+    '''
+    ### Cleft Segmentation ###
+    filtered_image = GaussFilter(image, kernel_size=segpar["cleft_gauss_ksize"], sigma=segpar["cleft_gauss_sigma"])
+
+    edges = CannyEdgeDetection(filtered_image, threshold1=segpar["cleft_canny_th1"], threshold2=segpar["cleft_canny_th2"])
+
+    lines = HoughTransform(edges, threshold=segpar["cleft_hough_th"])
+
+    #line_image = draw_line_image(image, lines, linecolor=(0,0,255))
+
+    clusters = cluster_lines(lines, num_clusters=2)
+
+    rep_lines = []
+    for cluster in clusters:
+        rep_line = compute_representative_line(cluster)
+        rep_lines.append(rep_line)
+
+    #rep_line_image = draw_line_image(image, rep_lines, linecolor=(255,0,0))
+
+    intersection_point = compute_intersection(rep_lines)
+
+    cleft_mask = create_triangle_mask(image, rep_lines, intersection_point)
+    cleft_contour = extract_contour_line(cleft_mask)
+
+
+    ### Growth Front Segmentation ###
+    masked_image = cv2.bitwise_and(image, image, mask=cleft_mask)
+
+    sobel_image = SobelFilter(masked_image, kernel_size=segpar["front_sobel_ksize"])
+
+    # Smooth image
+    #kernel_size=(3,3)
+    #sigma=1
+    filtered_image = GaussFilter(sobel_image, kernel_size=segpar["front_gauss_ksize"], sigma=segpar["front_gauss_sigma"])
+
+    threshold = segpar["front_segmentation_th"]
+    front_mask = IntensitySegmentation(filtered_image, threshold)
+    front_mask = invert_mask(front_mask)
+    check_point = (0,intersection_point[1]) #based on the cleft edges (only works, when the cleft opens to the left)
+    front_mask = keep_contour_with_point(front_mask, check_point)
+
+    # Smooth Mask Contour
+    # Apply morphological operations to remove small noise
+    kernel = np.ones((segpar["front_masksmoothing_ksize"], segpar["front_masksmoothing_ksize"]), np.uint8)
+    front_mask = cv2.morphologyEx(front_mask, cv2.MORPH_OPEN, kernel)
+
+    ### Erode the mask (includes inversion to erode in the right direction)
+    front_mask = invert_mask(front_mask)
+    kernel_size = segpar["front_erosion_ksize"]
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    front_mask = cv2.erode(front_mask, kernel, iterations=segpar["front_erosion_iters"])
+    front_mask = invert_mask(front_mask)
+    front_mask = keep_largest_edge_contour(front_mask) #this catches errors due to multiple masked regions after mask-smoothing!
+
+    ### get the front contour
+    front_contour = extract_contour_line(front_mask)
+
+    return cleft_mask, cleft_contour, front_mask, front_contour
 
 '''
 ############################################################################################

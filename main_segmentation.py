@@ -8,7 +8,7 @@ import sys
 # Set the environment variable to avoid memory leak warning
 os.environ["OMP_NUM_THREADS"] = "1"
 
-from data_segmentation.segmentation import *
+from data_segmentation.segmentation import Segmentation
 import data_reader.reader as reader
 from output_generation.visualizer import visualizer
 
@@ -20,12 +20,74 @@ output_path = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis\data\
 
 image_reader = reader.reader(root_dir, input_dir)
 image_stack = image_reader.read_avi()
-#'''
-for t in np.arange(0,350,5):
-    #t = 192
-    image = image_stack[t,...]
 
-    #'''
+# define segmentation parameters
+segmentation_parameters = { "cleft_gauss_ksize": 45,
+                            "cleft_gauss_sigma": 5,
+                            "cleft_canny_th1": 0,
+                            "cleft_canny_th2": 45,
+                            "cleft_hough_th": 125,
+                            "front_sobel_ksize": 3,
+                            "front_gauss_ksize": 3,
+                            "front_gauss_sigma": 3,
+                            "front_segmentation_th": 10,
+                            "front_masksmoothing_ksize": 25,
+                            "front_erosion_ksize": 3,
+                            "front_erosion_iters": 3}
+#'''
+for t in np.arange(0,350,1):
+#t = 192
+    image = image_stack[t,...]
+    cleft_mask, cleft_contour, front_mask, front_contour = Segmentation(image, segmentation_parameters)
+
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 3, 1)
+    plt.title('Image + Contours')
+    plt.imshow(image, cmap='gray')
+    plt.plot(front_contour[:, 0], front_contour[:, 1], marker='.', markersize=0.2, color='red', linestyle='-', linewidth=0.5)
+    plt.plot(cleft_contour[:, 0], cleft_contour[:, 1], marker='.', markersize=0.2, color='green', linestyle='-', linewidth=0.5)
+
+    plt.subplot(1, 3, 2)
+    plt.title('Cleft Mask')
+    plt.imshow(cleft_mask, cmap='gray')
+
+    plt.subplot(1, 3, 3)
+    plt.title('Growth Front Mask')
+    plt.imshow(front_mask, cmap='gray')
+
+    filename = 'Segmentation'+str(t)
+    plt.savefig(output_path / filename, dpi=600)   # save the figure to file
+    plt.close()    # close the figure window
+    #plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
     ### Cleft Segmentation ###
     filtered_image = GaussFilter(image, kernel_size=(45,45), sigma=5)
 
@@ -49,7 +111,7 @@ for t in np.arange(0,350,5):
     cleft_mask = create_triangle_mask(image, rep_lines, intersection_point)
     cleft_contour = extract_contour_line(cleft_mask)
 
-    '''
+    
     # Display the original image, edges, and the image with lines
     plt.figure(figsize=(15, 5))
 
@@ -79,7 +141,7 @@ for t in np.arange(0,350,5):
     plt.imshow(cleft_mask, cmap='gray')
 
     plt.show()
-    '''
+    
 
     ### Growth Front Segmentation ###
     # Apply the cleft mask to the image
@@ -115,25 +177,4 @@ for t in np.arange(0,350,5):
 
     ### get the front contour
     front_contour = extract_contour_line(front_mask)
-
-
-
-    plt.figure(figsize=(10, 5))
-    plt.subplot(1, 3, 1)
-    plt.title('Image + Contours')
-    plt.imshow(image, cmap='gray')
-    plt.plot(front_contour[:, 0], front_contour[:, 1], marker='.', markersize=1, color='red', linestyle='-', linewidth=0.5)
-    plt.plot(cleft_contour[:, 0], cleft_contour[:, 1], marker='.', markersize=1, color='green', linestyle='-', linewidth=0.5)
-
-    plt.subplot(1, 3, 2)
-    plt.title('Cleft Mask')
-    plt.imshow(cleft_mask, cmap='gray')
-
-    plt.subplot(1, 3, 3)
-    plt.title('Growth Front Mask')
-    plt.imshow(front_mask, cmap='gray')
-
-    filename = 'Segmentation'+str(t)
-    plt.savefig(output_path / filename, dpi=600)   # save the figure to file
-    plt.close()    # close the figure window
-    #plt.show()
+'''

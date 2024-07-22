@@ -351,11 +351,15 @@ def Segmentation(image, segpar):
     #sigma=1
     filtered_image = GaussFilter(sobel_image, kernel_size=segpar["front_gauss_ksize"], sigma=segpar["front_gauss_sigma"])
 
+
+
     threshold = segpar["front_segmentation_th"]
     front_mask = IntensitySegmentation(filtered_image, threshold)
     front_mask = invert_mask(front_mask)
-    check_point = (0,intersection_point[1]) #based on the cleft edges (only works, when the cleft opens to the left)
+    check_point = (50,intersection_point[1]) #based on the cleft edges (only works, when the cleft opens to the left)
     front_mask = keep_contour_with_point(front_mask, check_point)
+    #plt.imshow(front_mask, cmap='gray')
+    #plt.show()
 
     # Smooth Mask Contour
     # Apply morphological operations to remove small noise

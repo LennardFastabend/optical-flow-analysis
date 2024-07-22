@@ -193,11 +193,11 @@ class visualizer:
         plt.title(title)
         plt.imshow(image, cmap='gray')
         plt.plot(front_contour_line[:, 0], front_contour_line[:, 1], marker='.', markersize=1, color='red', linestyle='-', linewidth=1)
-        plt.plot(cleft_contour_line[:, 0], cleft_contour_line[:, 1], marker='.', markersize=1, color='orange', linestyle='-', linewidth=1)
+        plt.plot(cleft_contour_line[:, 0], cleft_contour_line[:, 1], marker='.', markersize=1, color='green', linestyle='-', linewidth=1)
         plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close()    # close the figure window
 
-    def saveGeometricQuantification(self,df, bin_size, max_shown_distance, max_shown_displacement, title, filename):
+    def saveGeometricQuantificationBinned(self,df, bin_size, max_shown_distance, max_shown_displacement, title, filename):
         # Define the bins for the distance values
         min_distance = df['distance'].min()
         max_distance = df['distance'].max()
@@ -234,6 +234,24 @@ class visualizer:
         plt.tight_layout()
         plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close()    # close the figure window
+
+    def saveGeometricQuantificationScatterPlot(self, df, max_shown_distance, max_shown_displacement, title, filename):
+        # Create the scatter plot
+        plt.figure(figsize=(10, 5))
+        plt.scatter(df['distance'], df['displacement'], s=1.5, marker='.', alpha=0.25) #label='Displacement of Pixel in Dependency of the Distance to the Growth Front ')
+
+        # Set consistent axis limits
+        plt.xlim(0, max_shown_distance)
+        plt.ylim(0, max_shown_displacement)
+
+        plt.xlabel('Distance to Growth Front')
+        plt.ylabel('Displacement')
+        plt.title(title)
+        plt.grid(True)
+        #plt.legend()
+        plt.tight_layout()
+        plt.savefig(self.output_path / filename, dpi=600)  # save the figure to file
+        plt.close()  # close the figure window
 
     def create_video(self, fps=30, interval=1):
         def natural_sort_key(s):

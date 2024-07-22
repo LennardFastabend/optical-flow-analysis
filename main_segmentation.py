@@ -35,8 +35,8 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
                             "front_erosion_ksize": 3,
                             "front_erosion_iters": 3}
 #'''
-for t in np.arange(0,350,1):
-#t = 192
+for t in np.arange(262,350,1):
+#t = 263
     image = image_stack[t,...]
     cleft_mask, cleft_contour, front_mask, front_contour = Segmentation(image, segmentation_parameters)
 

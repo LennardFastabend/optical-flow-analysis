@@ -358,8 +358,6 @@ def Segmentation(image, segpar):
     front_mask = invert_mask(front_mask)
     check_point = (50,intersection_point[1]) #based on the cleft edges (only works, when the cleft opens to the left)
     front_mask = keep_contour_with_point(front_mask, check_point)
-    #plt.imshow(front_mask, cmap='gray')
-    #plt.show()
 
     # Smooth Mask Contour
     # Apply morphological operations to remove small noise

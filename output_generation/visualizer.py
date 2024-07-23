@@ -197,7 +197,7 @@ class visualizer:
         plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close()    # close the figure window
 
-    def saveGeometricQuantificationBinned(self,df, bin_size, max_shown_distance, max_shown_displacement, title, filename):
+    def saveGeometricQuantificationBinnedStatistics(self,df, bin_size, max_shown_distance, max_shown_displacement, title, filename):
         # Define the bins for the distance values
         min_distance = df['distance'].min()
         max_distance = df['distance'].max()

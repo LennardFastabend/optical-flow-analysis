@@ -35,30 +35,30 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
                             "front_erosion_ksize": 3,
                             "front_erosion_iters": 3}
 #'''
-for t in np.arange(262,350,1):
-#t = 263
-    image = image_stack[t,...]
-    cleft_mask, cleft_contour, front_mask, front_contour = Segmentation(image, segmentation_parameters)
+#for t in np.arange(262,350,1):
+t = 107
+image = image_stack[t,...]
+cleft_mask, cleft_contour, front_mask, front_contour = Segmentation(image, segmentation_parameters)
 
-    plt.figure(figsize=(10, 5))
-    plt.subplot(1, 3, 1)
-    plt.title('Image + Contours')
-    plt.imshow(image, cmap='gray')
-    plt.plot(front_contour[:, 0], front_contour[:, 1], marker='.', markersize=0.2, color='red', linestyle='-', linewidth=0.5)
-    plt.plot(cleft_contour[:, 0], cleft_contour[:, 1], marker='.', markersize=0.2, color='green', linestyle='-', linewidth=0.5)
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 3, 1)
+plt.title('Image + Contours')
+plt.imshow(image, cmap='gray')
+plt.plot(front_contour[:, 0], front_contour[:, 1], marker='.', markersize=0.2, color='red', linestyle='-', linewidth=0.5)
+plt.plot(cleft_contour[:, 0], cleft_contour[:, 1], marker='.', markersize=0.2, color='green', linestyle='-', linewidth=0.5)
 
-    plt.subplot(1, 3, 2)
-    plt.title('Cleft Mask')
-    plt.imshow(cleft_mask, cmap='gray')
+plt.subplot(1, 3, 2)
+plt.title('Cleft Mask')
+plt.imshow(cleft_mask, cmap='gray')
 
-    plt.subplot(1, 3, 3)
-    plt.title('Growth Front Mask')
-    plt.imshow(front_mask, cmap='gray')
+plt.subplot(1, 3, 3)
+plt.title('Growth Front Mask')
+plt.imshow(front_mask, cmap='gray')
 
-    filename = 'Segmentation'+str(t)
-    plt.savefig(output_path / filename, dpi=600)   # save the figure to file
-    plt.close()    # close the figure window
-    #plt.show()
+filename = 'Segmentation'+str(t)
+#plt.savefig(output_path / filename, dpi=600)   # save the figure to file
+#plt.close()    # close the figure window
+plt.show()
 
 
 

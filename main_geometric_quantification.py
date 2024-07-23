@@ -13,15 +13,14 @@ import cv2
 import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
-input_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\TGF-b\input\P08#39_live_W07-P01.avi') #Read in Aligned Data! "C:\Users\lenna\Documents\GitHub\optical-flow-analysis\data\PhaseContrastCleft\ContractilityComparisson\TGF-b\input\P08#39_live_W07-P01.avi"
-output_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\TGF-b\analysis')
-
+input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi') #Read in Aligned Data! 
+output_dir = Path(r'data\PhaseContrastCleft\P01\new_geometric_quantification')
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
 ### Crop the image (resolves issues due to alignment of the images)
 t, y, x = image_stack.shape
-#image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
+image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
 
 ### calculate Example FlowFields for the defined time
 dT=3
@@ -85,8 +84,8 @@ for T in np.arange(0,Tmax-dT,10):
 
     title = 'Displacement vs. Distance to Growth Front at Time: '+ str(T) + '-' + str(T+dT)
     filename = 'geoquant' + str(T)
-    #geoquant_generator.saveGeometricQuantification(df, bin_size, max_shown_distance, max_shown_displacement, title, filename)
-    geoquant_generator.saveGeometricQuantificationScatterPlot(df, max_shown_distance, max_shown_displacement, title, filename)
+    geoquant_generator.saveGeometricQuantificationBinnedStatistics(df, bin_size, max_shown_distance, max_shown_displacement, title, filename+'binned')
+    #geoquant_generator.saveGeometricQuantificationScatterPlot(df, max_shown_distance, max_shown_displacement, title, filename)
     defmap_generator.saveDeformationMap(defmap, min=0, max=10, title='DefMap at Time: '+str(T)+'-'+str(T+dT), filename='DefMap'+str(T))
     segmentation_generator.saveSegmentationMasks(image, front_contour, cleft_contour, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
     #flowfield_generator.saveFlowField(image_stack[T,...], meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=20, epsilon=0)

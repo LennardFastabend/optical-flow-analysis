@@ -13,18 +13,18 @@ import cv2
 import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
-input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi') #Read in Aligned Data! 
-output_dir = Path(r'data\PhaseContrastCleft\P01\new_geometric_quantification')
+input_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\TGF-b\input\P08#39_live_W07-P01.avi') #Read in Aligned Data! "C:\Users\lenna\Documents\GitHub\optical-flow-analysis\data\PhaseContrastCleft\ContractilityComparisson\TGF-b\input\P08#39_live_W07-P01.avi"
+output_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\TGF-b\analysis\CumulativeScatter')
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
 ### Crop the image (resolves issues due to alignment of the images)
 t, y, x = image_stack.shape
-image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
+#image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
 
 ### calculate Example FlowFields for the defined time
-dT=3
-Tmax = 300
+dT=1
+Tmax = 70
 
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
@@ -39,9 +39,9 @@ flowfield_stack = opflow.FlowFieldStack(image_stack, farneback_parameters, t0=0,
 print('Farneback Analysis Finished')
 print()
 
-segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
+#segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
 #flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
-defmap_generator = visualizer(root_dir, output_dir/Path('defmap'))
+#defmap_generator = visualizer(root_dir, output_dir/Path('defmap'))
 geoquant_generator = visualizer(root_dir, output_dir/Path('geometric_quantification'))
 
 # define segmentation parameters
@@ -61,7 +61,12 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
 bin_size = 20
 max_shown_distance = 1000
 max_shown_displacement = 15
-for T in np.arange(0,Tmax-dT,10):
+
+df_list = []
+temp_scale = 60
+T0 = 0
+for T in np.arange(T0,T0+temp_scale,dT):
+    print(T)
 
     image = image_stack[T,...]
 
@@ -81,16 +86,19 @@ for T in np.arange(0,Tmax-dT,10):
 
     # quantify deformation as a function of distance ti the growth front
     df = geoquant.GeometricQuantification(defmap, tissue_mask, front_contour, xmax_front, dx=100)
+    df_list.append(df)
 
-    title = 'Displacement vs. Distance to Growth Front at Time: '+ str(T) + '-' + str(T+dT)
-    filename = 'geoquant' + str(T)
-    geoquant_generator.saveGeometricQuantificationBinnedStatistics(df, bin_size, max_shown_distance, max_shown_displacement, title, filename+'binned')
+    #title = 'Displacement vs. Distance to Growth Front at Time: '+ str(T) + '-' + str(T+dT)
+    #filename = 'geoquant' + str(T)
+    #geoquant_generator.saveGeometricQuantificationBinnedStatistics(df, bin_size, max_shown_distance, max_shown_displacement, title, filename+'binned')
     #geoquant_generator.saveGeometricQuantificationScatterPlot(df, max_shown_distance, max_shown_displacement, title, filename)
-    defmap_generator.saveDeformationMap(defmap, min=0, max=10, title='DefMap at Time: '+str(T)+'-'+str(T+dT), filename='DefMap'+str(T))
-    segmentation_generator.saveSegmentationMasks(image, front_contour, cleft_contour, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
+    #defmap_generator.saveDeformationMap(defmap, min=0, max=10, title='DefMap at Time: '+str(T)+'-'+str(T+dT), filename='DefMap'+str(T))
+    #segmentation_generator.saveSegmentationMasks(image, front_contour, cleft_contour, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
     #flowfield_generator.saveFlowField(image_stack[T,...], meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=20, epsilon=0)
 
-
+title = 'Displacement vs. Distance to Growth Front at Time: '+ str(T0) + '-' + str(T0+temp_scale)
+filename = 'CumulativeGeoquant' + str(T0)
+geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_list, max_shown_distance, max_shown_displacement, title, filename) #Note: Set dT = 1 for this!!!
 
 
 

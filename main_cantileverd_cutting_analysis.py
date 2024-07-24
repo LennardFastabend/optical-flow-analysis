@@ -18,17 +18,20 @@ start_time = time.time()
 
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
-input_dir = Path(r'data\PrimaryCantileveredCleft\input\P08#39_live_W01-P01_aligned.avi') 
-output_dir = Path(r'data\PrimaryCantileveredCleft\P08#39_live_W01-P01')
+input_dir = Path(r'data\PrimaryCantileveredCleft\input\P08#39_live_W01-P02_aligned.avi') #"C:\Users\lenna\Documents\GitHub\optical-flow-analysis\data\PrimaryCantileveredCleft\input\P08#39_live_W01-P02_aligned.avi"
+output_dir = Path(r'data\PrimaryCantileveredCleft\P08#39_live_W01-P02')
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
+image_stack = image_stack[85:360, ...] # discard the first frames
+
 t, y, x = image_stack.shape
 
-image_stack = image_stack[:, 100:y-100, 50:x-50] #crop the image
+image_stack = image_stack[:, 100:y-100, 60:x-40] #crop the image
 
-dT=7
-Tmax = 200
+
+dT=10
+Tmax = 270
 
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
@@ -42,12 +45,12 @@ print('Start Farneback Analysis')
 flowfield_stack = opflow.FlowFieldStack(image_stack, farneback_parameters, t0=0, tfin=Tmax, dt=1)
 print('Farneback Analysis Finished')
 
+image_generator = visualizer(root_dir, output_dir/Path('images'))
 flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
 defmap_generator = visualizer(root_dir, output_dir/Path('defmap'))
 defmapRGB_generator = visualizer(root_dir, output_dir/Path('defmapRGB'))
-#save the color map for the rgb_defmap seperately
-max_magnitude = 10
-defmapRGB_generator.saveHSVcolormap(max_magnitude, filename='colormap')
+#save the color map for the rgb_defmap seperately (after video generation)
+max_magnitude = 6
 
 
 for T in np.arange(0,Tmax-dT,1):
@@ -57,10 +60,19 @@ for T in np.arange(0,Tmax-dT,1):
     # Calculate a Deformation Map
     meanflowfield = opflow.MeanFlowField(flowfield_stack[T:T+dT,...])
     defmap = opflow.calculateMagnitude(meanflowfield)
-    defmap_generator.saveDeformationMap(defmap, min=0, max=10, title='DefMap at Time: '+str(T)+'-'+str(T+dT), filename='DefMap'+str(T))
+    image_generator.saveImage(image_stack[T,...], title='Cleft at Time: '+str(T), filename='Image'+str(T))
+    defmap_generator.saveDeformationMap(defmap, min=0, max=max_magnitude, title='DefMap at Time: '+str(T)+'-'+str(T+dT), filename='DefMap'+str(T))
     defmapRGB_generator.saveDeformationMapRGB(meanflowfield, max_magnitude, title='DefMap at Time: '+str(T)+'-'+str(T+dT), filename='DefMap'+str(T))
     flowfield_generator.saveFlowField(image_stack[T,...], meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=20, epsilon=0)
 
 
 print("--- Runtime: %s seconds ---" % (time.time() - start_time))
 print()
+
+print('Generate Videos')
+image_generator.create_video(fps=10)
+flowfield_generator.create_video(fps=10)
+defmap_generator.create_video(fps=10)
+defmapRGB_generator.create_video(fps=10)
+
+defmapRGB_generator.saveHSVcolormap(max_magnitude, filename='colormap')

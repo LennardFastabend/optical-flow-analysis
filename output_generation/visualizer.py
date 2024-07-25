@@ -3,6 +3,7 @@ import matplotlib.colors
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LogNorm
 import cv2
 import os
 from pathlib import Path
@@ -264,6 +265,33 @@ class visualizer:
         plt.xlim(0, max_shown_distance)
         plt.ylim(0, max_shown_displacement)
 
+        plt.xlabel('Distance to Growth Front')
+        plt.ylabel('Displacement')
+        plt.title(title)
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(self.output_path / filename, dpi=600)  # save the figure to file
+        plt.close()  # close the figure window
+
+    def saveCumulativeGeometricQuantificationHeatMap(self, df_list, max_shown_distance, max_shown_displacement, title, filename, bins=1000, cmap='jet'):
+        plt.figure(figsize=(10, 5))
+        
+        # Initialize arrays to hold all distance and displacement data
+        all_distances = np.array([])
+        all_displacements = np.array([])
+        
+        # Collect data from all dataframes
+        for df in df_list:
+            all_distances = np.append(all_distances, df['distance'])
+            all_displacements = np.append(all_displacements, df['displacement'])
+        
+        # Create 2D histogram with the specified number of bins
+        heatmap, xedges, yedges = np.histogram2d(all_distances, all_displacements, bins=bins, range=[[0, max_shown_distance], [0, max_shown_displacement]])
+        
+        # Plot heatmap with logarithmic color scale
+        plt.imshow(heatmap.T, extent=[0, max_shown_distance, 0, max_shown_displacement], origin='lower', aspect='auto', cmap=cmap, norm=LogNorm())
+        
+        plt.colorbar(label='Density (log scale)')
         plt.xlabel('Distance to Growth Front')
         plt.ylabel('Displacement')
         plt.title(title)

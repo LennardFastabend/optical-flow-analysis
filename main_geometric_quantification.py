@@ -13,18 +13,18 @@ import cv2
 import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
-input_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\TGF-b\input\P08#39_live_W07-P01.avi') #Read in Aligned Data! "C:\Users\lenna\Documents\GitHub\optical-flow-analysis\data\PhaseContrastCleft\ContractilityComparisson\TGF-b\input\P08#39_live_W07-P01.avi"
-output_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\TGF-b\analysis\CumulativeScatter')
+input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi') #Read in Aligned Data! 
+output_dir = Path(r'data\PhaseContrastCleft\P01\new_geometric_quantification\CumulativeScatter') 
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
 ### Crop the image (resolves issues due to alignment of the images)
 t, y, x = image_stack.shape
-#image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
+image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
 
 ### calculate Example FlowFields for the defined time
 dT=1
-Tmax = 70
+Tmax = 260
 
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
@@ -63,8 +63,8 @@ max_shown_distance = 1000
 max_shown_displacement = 15
 
 df_list = []
-temp_scale = 60
-T0 = 0
+T0=150
+temp_scale = 100
 for T in np.arange(T0,T0+temp_scale,dT):
     print(T)
 
@@ -97,8 +97,10 @@ for T in np.arange(T0,T0+temp_scale,dT):
     #flowfield_generator.saveFlowField(image_stack[T,...], meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=20, epsilon=0)
 
 title = 'Displacement vs. Distance to Growth Front at Time: '+ str(T0) + '-' + str(T0+temp_scale)
-filename = 'CumulativeGeoquant' + str(T0)
+filename = 'CumulativeGeoquant' + str(T0) + '-' + str(T0+temp_scale)
 geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_list, max_shown_distance, max_shown_displacement, title, filename) #Note: Set dT = 1 for this!!!
+filename = 'CumulativeGeoquantHeatmap' + str(T0) + '-' + str(T0+temp_scale)
+geoquant_generator.saveCumulativeGeometricQuantificationHeatMap(df_list, max_shown_distance, max_shown_displacement, title, filename, bins=1000, cmap='jet')
 
 
 

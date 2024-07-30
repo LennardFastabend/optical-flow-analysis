@@ -300,6 +300,31 @@ class visualizer:
         plt.savefig(self.output_path / filename, dpi=600)  # save the figure to file
         plt.close()  # close the figure window
 
+
+    def saveDirectionalGeometricQuantificationScatterPlot(self, df, max_shown_distance, max_shown_displacement, title, filename, displacement_type='x'):
+        if displacement_type not in ['x', 'y']:
+            raise ValueError("displacement_type must be either 'x' or 'y'")
+        
+        # Select the appropriate displacement column and set color
+        displacement_column = f'{displacement_type}_displacement'
+        color = 'red' if displacement_type == 'x' else 'green'
+        
+        # Create the scatter plot
+        plt.figure(figsize=(10, 5))
+        plt.scatter(df['distance'], df[displacement_column], s=1.5, marker='.', alpha=0.25, color=color)
+
+        # Set consistent axis limits
+        plt.xlim(0, max_shown_distance)
+        plt.ylim(-max_shown_displacement, max_shown_displacement)
+
+        plt.xlabel('Distance to Growth Front')
+        plt.ylabel(f'{displacement_type.upper()} Displacement')
+        plt.title(f'{displacement_type.upper()}-{title}')
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(self.output_path / f'{filename}_{displacement_type}.png', dpi=600)  # save the figure to file
+        plt.close()  # close the figure window
+
     def create_video(self, fps=30, interval=1):
         def natural_sort_key(s):
             import re

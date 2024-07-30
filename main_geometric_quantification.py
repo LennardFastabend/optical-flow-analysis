@@ -14,7 +14,7 @@ import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
 input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi') #Read in Aligned Data! 
-output_dir = Path(r'data\PhaseContrastCleft\P01\new_geometric_quantification\CumulativeScatter') 
+output_dir = Path(r'data\PhaseContrastCleft\P01\directional_geometric_quantification') 
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
@@ -23,8 +23,8 @@ t, y, x = image_stack.shape
 image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
 
 ### calculate Example FlowFields for the defined time
-dT=1
-Tmax = 260
+dT=10
+Tmax = 200
 
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
@@ -39,8 +39,8 @@ flowfield_stack = opflow.FlowFieldStack(image_stack, farneback_parameters, t0=0,
 print('Farneback Analysis Finished')
 print()
 
-#segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
-#flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
+segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
+flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
 #defmap_generator = visualizer(root_dir, output_dir/Path('defmap'))
 geoquant_generator = visualizer(root_dir, output_dir/Path('geometric_quantification'))
 
@@ -57,6 +57,50 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
                             "front_masksmoothing_ksize": 25,
                             "front_erosion_ksize": 3,
                             "front_erosion_iters": 3}
+
+max_shown_distance = 1000
+max_shown_displacement = 15
+
+T0=0
+step = 25
+for T in np.arange(T0,Tmax-step,step):
+    print(T)
+
+    image = image_stack[T,...]
+
+    # Calculate a Deformation Map
+    meanflowfield = opflow.MeanFlowField(flowfield_stack[T:T+dT,...])
+    defmap = opflow.calculateMagnitude(meanflowfield)
+
+    # perform the segmentation
+    cleft_mask, cleft_contour, front_mask, front_contour = Segmentation(image, segmentation_parameters)
+
+    # find max x coordinate of growth front
+    xmax_front = np.argmax(front_contour[:, 0])
+    #print('xmax of growth front:', xmax_front)
+
+    # define tissue region based on masks
+    tissue_mask = cv2.subtract(cleft_mask, front_mask)
+
+    # quantify deformation as a function of distance ti the growth front
+    df = geoquant.DirectionalGeometricQuantification(meanflowfield, tissue_mask, front_contour, xmax_front, dx=100)
+
+    segmentation_generator.saveSegmentationMasks(image, front_contour, cleft_contour, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
+    flowfield_generator.saveFlowField(image_stack[T,...], meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=15, epsilon=0)
+
+    title = 'Displacement vs. Distance to Growth Front at Time: '+ str(T) + '-' + str(T+dT)
+    filename = 'geoquant' + str(T)
+    geoquant_generator.saveDirectionalGeometricQuantificationScatterPlot(df, max_shown_distance, max_shown_displacement, title, filename, displacement_type='x')
+    geoquant_generator.saveDirectionalGeometricQuantificationScatterPlot(df, max_shown_distance, max_shown_displacement, title, filename, displacement_type='y')
+
+
+
+
+
+sys.exit()
+'''
+Example defmap magnitude analysis in scatter plots and cumulative scatter plots
+'''
 # paramters for geoquant visualisation
 bin_size = 20
 max_shown_distance = 1000

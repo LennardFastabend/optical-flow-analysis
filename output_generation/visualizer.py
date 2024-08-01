@@ -70,7 +70,7 @@ class visualizer:
         #plt.xlabel('x')
         #plt.ylabel('y')
         plt.axis('off')
-        plt.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale = 0.2, width=0.001, color=colormap(norm(colors))) #, color='r'
+        plt.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale = 0.2, width=0.001, color=colormap(norm(colors))) #scale = 0.2
         fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close(fig)    # close the figure window
 

@@ -14,7 +14,7 @@ import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
 input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi') #Read in Aligned Data! 
-output_dir = Path(r'data\PhaseContrastCleft\P01\directional_geometric_quantification') 
+output_dir = Path(r'data\PhaseContrastCleft\P01\extended_geometric_quantification') 
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
@@ -23,9 +23,8 @@ t, y, x = image_stack.shape
 image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
 
 ### calculate Example FlowFields for the defined time
-dT=10
-Tmax = 200
-
+dT=1
+Tmax = 300
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
                         "winsize": 5,#15,
@@ -42,7 +41,7 @@ print()
 segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
 flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
 #defmap_generator = visualizer(root_dir, output_dir/Path('defmap'))
-geoquant_generator = visualizer(root_dir, output_dir/Path('geometric_quantification'))
+#geoquant_generator = visualizer(root_dir, output_dir/Path('geometric_quantification'))
 
 # define segmentation parameters
 segmentation_parameters = { "cleft_gauss_ksize": 45,
@@ -58,9 +57,57 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
                             "front_erosion_ksize": 3,
                             "front_erosion_iters": 3}
 
+
+T0=0
+step = 10
+for T in np.arange(T0,Tmax-step,step):
+    print(T)
+
+    image = image_stack[T,...]
+    meanflowfield = opflow.MeanFlowField(flowfield_stack[T:T+dT,...])
+
+    # perform the segmentation
+    cleft_mask, cleft_contour, front_mask, front_contour = Segmentation(image, segmentation_parameters)
+
+    # find max x coordinate of growth front
+    #xmax_front = np.argmax(front_contour[:, 0])
+    #print('xmax of growth front:', xmax_front)
+
+    # define tissue region based on masks
+    tissue_mask = cv2.subtract(cleft_mask, front_mask)
+
+    normal_vectors, distance_map = geoquant.ComputeNormalVectorField(tissue_mask, front_mask)
+
+    FlowParallel, FlowNormal = geoquant.ComputeNormalAndParallelDisplacement(meanflowfield, normal_vectors)
+
+    #segmentation_generator.saveSegmentationMasks(image, front_contour, cleft_contour, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
+    flowfield_generator.saveFlowField(image, meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=20, epsilon=0)
+
+    '''
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.title('Displacement Normal to Growth Front')
+    plt.imshow(FlowNormal, cmap='seismic', vmin=-10, vmax=10)
+    plt.colorbar()
+
+    plt.subplot(1, 2, 2)
+    plt.title('Displacement Parallel to Growth Front')
+    plt.imshow(FlowParallel, cmap='seismic', vmin=-10, vmax=10)
+    plt.colorbar()
+
+    output_path = output_dir / Path('ComponentAnalysis')
+    filename = 'ComponentAnalysis' + str(T)
+    plt.savefig(output_path / filename, dpi=600)   # save the figure to file
+    plt.close()    # close the figure window
+    '''
+
+
+sys.exit()
 max_shown_distance = 1000
 max_shown_displacement = 15
-
+'''
+Example defmap x/y-component analysis in scatter plots
+'''
 T0=0
 step = 25
 for T in np.arange(T0,Tmax-step,step):
@@ -92,8 +139,6 @@ for T in np.arange(T0,Tmax-step,step):
     filename = 'geoquant' + str(T)
     geoquant_generator.saveDirectionalGeometricQuantificationScatterPlot(df, max_shown_distance, max_shown_displacement, title, filename, displacement_type='x')
     geoquant_generator.saveDirectionalGeometricQuantificationScatterPlot(df, max_shown_distance, max_shown_displacement, title, filename, displacement_type='y')
-
-
 
 
 

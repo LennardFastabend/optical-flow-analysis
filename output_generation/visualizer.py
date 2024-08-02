@@ -236,14 +236,14 @@ class visualizer:
         plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close()    # close the figure window
 
-    def saveGeometricQuantificationScatterPlot(self, df, max_shown_distance, max_shown_displacement, title, filename):
+    def saveGeometricQuantificationScatterPlot(self, df, max_shown_distance, min_shown_displacement, max_shown_displacement, title, filename, c='#1f77b4'):
         # Create the scatter plot
         plt.figure(figsize=(10, 5))
-        plt.scatter(df['distance'], df['displacement'], s=1.5, marker='.', alpha=0.25) #label='Displacement of Pixel in Dependency of the Distance to the Growth Front ')
+        plt.scatter(df['distance'], df['displacement'], s=1.5, marker='.', alpha=0.25, color=c) #label='Displacement of Pixel in Dependency of the Distance to the Growth Front ')
 
         # Set consistent axis limits
         plt.xlim(0, max_shown_distance)
-        plt.ylim(0, max_shown_displacement)
+        plt.ylim(min_shown_displacement, max_shown_displacement)
 
         plt.xlabel('Distance to Growth Front')
         plt.ylabel('Displacement')
@@ -254,16 +254,16 @@ class visualizer:
         plt.savefig(self.output_path / filename, dpi=600)  # save the figure to file
         plt.close()  # close the figure window
 
-    def saveCumulativeGeometricQuantificationScatterPlot(self, df_list, max_shown_distance, max_shown_displacement, title, filename):
+    def saveCumulativeGeometricQuantificationScatterPlot(self, df_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title, filename, c='blue'):
         plt.figure(figsize=(10, 5))
         
         # Loop through each dataframe in the list and plot the data
         for df in df_list:
-            plt.scatter(df['distance'], df['displacement'], s=1.5, marker='.', alpha=0.005, color='blue')
+            plt.scatter(df['distance'], df['displacement'], s=1.5, marker='.', alpha=0.005, color=c)
 
         # Set consistent axis limits
         plt.xlim(0, max_shown_distance)
-        plt.ylim(0, max_shown_displacement)
+        plt.ylim(min_shown_displacement, max_shown_displacement)
 
         plt.xlabel('Distance to Growth Front')
         plt.ylabel('Displacement')

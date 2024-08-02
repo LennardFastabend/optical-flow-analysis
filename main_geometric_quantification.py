@@ -41,7 +41,7 @@ print()
 segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
 flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
 #defmap_generator = visualizer(root_dir, output_dir/Path('defmap'))
-#geoquant_generator = visualizer(root_dir, output_dir/Path('geometric_quantification'))
+geoquant_generator = visualizer(root_dir, output_dir/Path('ComponentCumulativeScatter'))
 
 # define segmentation parameters
 segmentation_parameters = { "cleft_gauss_ksize": 45,
@@ -57,10 +57,17 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
                             "front_erosion_ksize": 3,
                             "front_erosion_iters": 3}
 
+max_shown_distance = 1000
+max_shown_displacement = 15
 
-T0=0
-step = 10
-for T in np.arange(T0,Tmax-step,step):
+T0=150
+step = 1
+
+temp_scale = 100
+
+df_parallel_list = []
+df_normal_list = []
+for T in np.arange(T0,T0+temp_scale,step):
     print(T)
 
     image = image_stack[T,...]
@@ -80,26 +87,50 @@ for T in np.arange(T0,Tmax-step,step):
 
     FlowParallel, FlowNormal = geoquant.ComputeNormalAndParallelDisplacement(meanflowfield, normal_vectors)
 
-    #segmentation_generator.saveSegmentationMasks(image, front_contour, cleft_contour, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
-    flowfield_generator.saveFlowField(image, meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=20, epsilon=0)
+    xmax_front = np.argmax(front_contour[:, 0])
+    df_parallel = geoquant.GeometricQuantificationDistanceMap(FlowParallel, tissue_mask, distance_map, xmax_front, dx=100)
+    df_normal = geoquant.GeometricQuantificationDistanceMap(FlowNormal, tissue_mask, distance_map, xmax_front, dx=100)
 
-    '''
-    plt.figure(figsize=(10, 5))
-    plt.subplot(1, 2, 1)
-    plt.title('Displacement Normal to Growth Front')
-    plt.imshow(FlowNormal, cmap='seismic', vmin=-10, vmax=10)
-    plt.colorbar()
+    df_parallel_list.append(df_parallel)
+    df_normal_list.append(df_normal)
 
-    plt.subplot(1, 2, 2)
-    plt.title('Displacement Parallel to Growth Front')
-    plt.imshow(FlowParallel, cmap='seismic', vmin=-10, vmax=10)
-    plt.colorbar()
 
-    output_path = output_dir / Path('ComponentAnalysis')
-    filename = 'ComponentAnalysis' + str(T)
-    plt.savefig(output_path / filename, dpi=600)   # save the figure to file
-    plt.close()    # close the figure window
-    '''
+title_parallel = 'Displacement Parallel to the Growth Frant at Time: '+ str(T0) + '-' + str(T0+temp_scale)
+filename_parallel = 'CumulativeGeoquant_parallel' + str(T0) + '-' + str(T0+temp_scale)
+geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_parallel_list, max_shown_distance, max_shown_displacement, title_parallel, filename_parallel, c='green') #Note: Set dT = 1 for this!!!
+
+title_normal = 'Displacement Normal to the Growth Frant at Time: '+ str(T0) + '-' + str(T0+temp_scale)
+filename_normal = 'CumulativeGeoquant_normal' + str(T0) + '-' + str(T0+temp_scale)
+geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_normal_list, max_shown_distance, max_shown_displacement, title_normal, filename_normal, c='red') #Note: Set dT = 1 for this!!!
+
+#segmentation_generator.saveSegmentationMasks(image, front_contour, cleft_contour, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
+#flowfield_generator.saveFlowField(image, meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=20, epsilon=0)
+
+'''
+title_parallel = 'Displacement Parallel to the Growth Frant at Time: '+ str(T) + '-' + str(T+dT)
+filename_parallel = 'geoquant_parallel' + str(T)
+geoquant_generator.saveGeometricQuantificationScatterPlot(df_parallel, max_shown_distance, max_shown_displacement, title_parallel, filename_parallel, c='green')
+title_normal = 'Displacement Normal to the Growth Frant at Time: '+ str(T) + '-' + str(T+dT)
+filename_normal = 'geoquant_normal' + str(T)
+geoquant_generator.saveGeometricQuantificationScatterPlot(df_normal, max_shown_distance, max_shown_displacement, title_normal, filename_normal, c='red')
+'''
+'''
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+plt.title('Displacement Normal to Growth Front')
+plt.imshow(FlowNormal, cmap='seismic', vmin=-10, vmax=10)
+plt.colorbar()
+
+plt.subplot(1, 2, 2)
+plt.title('Displacement Parallel to Growth Front')
+plt.imshow(FlowParallel, cmap='seismic', vmin=-10, vmax=10)
+plt.colorbar()
+
+output_path = output_dir / Path('ComponentAnalysis')
+filename = 'ComponentAnalysis' + str(T)
+plt.savefig(output_path / filename, dpi=600)   # save the figure to file
+plt.close()    # close the figure window
+'''
 
 
 sys.exit()

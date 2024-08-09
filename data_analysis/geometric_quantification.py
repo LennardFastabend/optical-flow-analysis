@@ -50,66 +50,6 @@ def GeometricQuantificationDistanceMap(defmap, tissue_mask, distance_map, xmax_f
     df = pd.DataFrame(data, columns=['distance', 'displacement'])
     return df
 
-def DirectionalGeometricQuantification(FlowField, tissue_mask, front_contour_line, xmax_front, dx=100):
-    '''
-    Extended Geometric Quantification, that stores the X and Y components of the deformation field together with the distance to the growth front and the coordinates of the given pixel
-    '''
-    # Define the FlowField-components in x- and y-direction
-    Fx_component = FlowField[:, :, 0]
-    Fy_component = FlowField[:, :, 1]
-    data = [] #list to store (distance, deformation) value pairs
-    dx = 100 #maximum distance from growth front center for deformations to be considered
-    # Find the coordinates of non-zero points in the mask
-    masked_pixels = np.column_stack(np.where(tissue_mask > 0))
-    # Iterate over masked tissue deformation
-    for pixel in masked_pixels:
-        y = pixel[0]
-        x = pixel[1]
-        if x >= xmax_front-dx:
-            # Calculate the Euclidean distance from the pixel to each point in the contour
-            distances = np.sqrt(np.sum((front_contour_line - [x,y]) ** 2, axis=1))
-            # Find the minimum distance
-            min_distance = np.min(distances)
-            # Access the pixel value in the image
-            Fx = Fx_component[y, x]
-            Fy = Fy_component[y, x]
-            data.append((x,y,min_distance,Fx,Fy))
-
-    # Convert the list of tuples to a pandas DataFrame
-    df = pd.DataFrame(data, columns=['x','y','distance','x_displacement', 'y_displacement'])
-    return df
-
-def ExtensiveGeometricQuantification(FlowField, tissue_mask, front_contour_line, xmax_front, dx=100):
-    '''
-    Geometric Quantification, that stores:
-    coordinates of the pixel and the distance vector to the growth front,
-    X and Y components of the deformation and the components normal and parallel to the growthfront 
-    '''
-    # Define the FlowField-components in x- and y-direction
-    Fx_component = FlowField[:, :, 0]
-    Fy_component = FlowField[:, :, 1]
-    data = [] #list to store (distance, deformation) value pairs
-    dx = 100 #maximum distance from growth front center for deformations to be considered
-    # Find the coordinates of non-zero points in the mask
-    masked_pixels = np.column_stack(np.where(tissue_mask > 0))
-    # Iterate over masked tissue deformation
-    for pixel in masked_pixels:
-        y = pixel[0]
-        x = pixel[1]
-        if x >= xmax_front-dx:
-            # Calculate the Euclidean distance from the pixel to each point in the contour
-            distances = np.sqrt(np.sum((front_contour_line - [x,y]) ** 2, axis=1))
-            # Find the minimum distance
-            min_distance = np.min(distances)
-            # Access the pixel value in the image
-            Fx = Fx_component[y, x]
-            Fy = Fy_component[y, x]
-            data.append((x,y,min_distance,Fx,Fy))
-
-    # Convert the list of tuples to a pandas DataFrame
-    df = pd.DataFrame(data, columns=['x','y','distance','x_displacement', 'y_displacement'])
-    return df
-
 def ComputeNormalVectorField(tissue_mask, front_mask):
     '''
     Compute the normal vector field and distance map for a given tissue mask and front mask.
@@ -177,3 +117,69 @@ def ComputeNormalAndParallelDisplacement(FlowField, normal_vectors):
     orthogonal_component = np.sum(orthogonal_vectors * rotated_normals, axis=2)
     
     return orthogonal_component, parallel_component  #Note: parallel comp. is normal to growthfront, orth. comp. is paralell to growth front
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+def DirectionalGeometricQuantification(FlowField, tissue_mask, front_contour_line, xmax_front, dx=100):
+    # Define the FlowField-components in x- and y-direction
+    Fx_component = FlowField[:, :, 0]
+    Fy_component = FlowField[:, :, 1]
+    data = [] #list to store (distance, deformation) value pairs
+    dx = 100 #maximum distance from growth front center for deformations to be considered
+    # Find the coordinates of non-zero points in the mask
+    masked_pixels = np.column_stack(np.where(tissue_mask > 0))
+    # Iterate over masked tissue deformation
+    for pixel in masked_pixels:
+        y = pixel[0]
+        x = pixel[1]
+        if x >= xmax_front-dx:
+            # Calculate the Euclidean distance from the pixel to each point in the contour
+            distances = np.sqrt(np.sum((front_contour_line - [x,y]) ** 2, axis=1))
+            # Find the minimum distance
+            min_distance = np.min(distances)
+            # Access the pixel value in the image
+            Fx = Fx_component[y, x]
+            Fy = Fy_component[y, x]
+            data.append((x,y,min_distance,Fx,Fy))
+
+    # Convert the list of tuples to a pandas DataFrame
+    df = pd.DataFrame(data, columns=['x','y','distance','x_displacement', 'y_displacement'])
+    return df
+
+def ExtensiveGeometricQuantification(FlowField, tissue_mask, front_contour_line, xmax_front, dx=100):
+    # Define the FlowField-components in x- and y-direction
+    Fx_component = FlowField[:, :, 0]
+    Fy_component = FlowField[:, :, 1]
+    data = [] #list to store (distance, deformation) value pairs
+    dx = 100 #maximum distance from growth front center for deformations to be considered
+    # Find the coordinates of non-zero points in the mask
+    masked_pixels = np.column_stack(np.where(tissue_mask > 0))
+    # Iterate over masked tissue deformation
+    for pixel in masked_pixels:
+        y = pixel[0]
+        x = pixel[1]
+        if x >= xmax_front-dx:
+            # Calculate the Euclidean distance from the pixel to each point in the contour
+            distances = np.sqrt(np.sum((front_contour_line - [x,y]) ** 2, axis=1))
+            # Find the minimum distance
+            min_distance = np.min(distances)
+            # Access the pixel value in the image
+            Fx = Fx_component[y, x]
+            Fy = Fy_component[y, x]
+            data.append((x,y,min_distance,Fx,Fy))
+
+    # Convert the list of tuples to a pandas DataFrame
+    df = pd.DataFrame(data, columns=['x','y','distance','x_displacement', 'y_displacement'])
+    return df
+'''

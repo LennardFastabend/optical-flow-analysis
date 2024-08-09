@@ -14,7 +14,7 @@ import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
 input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi') #Read in Aligned Data! 
-output_dir = Path(r'data\PhaseContrastCleft\P01\extended_geometric_quantification') 
+output_dir = Path(r'data\PhaseContrastCleft\P01\geoquant_filtered_images') 
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
@@ -24,7 +24,7 @@ image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
 
 ### calculate Example FlowFields for the defined time
 dT=1
-Tmax = 300
+Tmax = 60
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
                         "winsize": 5,#15,
@@ -61,10 +61,10 @@ max_shown_distance = 1000
 max_shown_displacement = 15
 min_shown_displacement = -15
 
-T0=0
-step = 5
+T0=50
+step = 10
 
-temp_scale = 350
+temp_scale = 10
 
 df_parallel_list = []
 df_normal_list = []
@@ -73,6 +73,7 @@ for T in np.arange(T0,T0+temp_scale,step):
 
     image = image_stack[T,...]
     meanflowfield = opflow.MeanFlowField(flowfield_stack[T:T+dT,...])
+    defmap = opflow.calculateMagnitude(meanflowfield)
 
     # perform the segmentation
     cleft_mask, cleft_contour, front_mask, front_contour = Segmentation(image, segmentation_parameters)
@@ -83,6 +84,21 @@ for T in np.arange(T0,T0+temp_scale,step):
 
     # define tissue region based on masks
     tissue_mask = cv2.subtract(cleft_mask, front_mask)
+
+    plt.imshow(tissue_mask, cmap='gray')
+    plt.plot(front_contour[:, 0], front_contour[:, 1], marker='.', markersize=0.2, color='red', linestyle='-', linewidth=1)
+    plt.plot(cleft_contour[:, 0], cleft_contour[:, 1], marker='.', markersize=0.2, color='green', linestyle='-', linewidth=1)
+    plt.show()
+
+    masked_defmap = defmap * tissue_mask/255
+
+    plt.imshow(masked_defmap, cmap='plasma', vmin=0, vmax=10)
+    plt.plot(front_contour[:, 0], front_contour[:, 1], marker='.', markersize=0.2, color='red', linestyle='-', linewidth=1)
+    plt.plot(cleft_contour[:, 0], cleft_contour[:, 1], marker='.', markersize=0.2, color='green', linestyle='-', linewidth=1)
+    plt.colorbar()
+    plt.show()
+
+    sys.exit()
 
     normal_vectors, distance_map = geoquant.ComputeNormalVectorField(tissue_mask, front_mask)
 

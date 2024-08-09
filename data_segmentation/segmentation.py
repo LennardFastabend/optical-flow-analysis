@@ -244,6 +244,36 @@ def compute_intersection(lines):
     
     return intersection
 
+def compute_left_border_intersection(line, image):
+    # Get the dimensions of the image
+    image_height, image_width = image.shape  # shape returns (height, width)
+
+    # Extract rho and theta for the line
+    rho, theta = line[0]
+
+    # Convert polar coordinates to Cartesian line equation coefficients
+    A = np.cos(theta)
+    B = np.sin(theta)
+    C = rho
+
+    # The equation of the line in Cartesian form is: Ax + By = C
+    # The left border of the image corresponds to x = 0.
+    
+    # For x = 0, the equation simplifies to: B * y = C
+    # So, y = C / B
+    
+    if B == 0:  # This would imply that the line is horizontal and does not intersect the left border
+        return None
+    
+    y = C / B
+
+    # Check if the intersection is within the bounds of the image height
+    if 0 <= y <= image_height:
+        intersection = [0, int(y)]  # The intersection point at the left border (x=0)
+        return intersection
+    else:
+        return None  # Intersection is out of image bounds
+
 def create_triangle_mask(image, lines, intersection):
     # Image dimensions
     height, width = image.shape
@@ -375,7 +405,7 @@ def Segmentation(image, segpar):
     ### get the front contour
     front_contour = extract_contour_line(front_mask)
 
-    return cleft_mask, cleft_contour, front_mask, front_contour
+    return cleft_mask, cleft_contour, front_mask, front_contour, rep_lines
 
 '''
 ############################################################################################

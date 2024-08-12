@@ -78,6 +78,69 @@ for T in np.arange(T0,T0+temp_scale,step):
     left_border_intersection1 = compute_left_border_intersection(edge_lines[0], image)
     left_border_intersection2 = compute_left_border_intersection(edge_lines[1], image)
 
-    print(line_intersection)
-    print(left_border_intersection1)
-    print(left_border_intersection2)
+    #oder the border intersections to define a upper and lower cleft edge
+    if left_border_intersection1[1] < left_border_intersection2[1]:
+        upper_border_intersection = left_border_intersection1
+        lower_border_intersection = left_border_intersection2
+    else:
+        upper_border_intersection = left_border_intersection2
+        lower_border_intersection = left_border_intersection1
+
+    #define vectors that point from the image boundaries to th eline intersection
+    upper_line_vector = line_intersection - upper_border_intersection
+    lower_line_vector = line_intersection - lower_border_intersection
+    # Normalize the vectors to length 1
+    upper_line_vector = upper_line_vector / np.linalg.norm(upper_line_vector)
+    lower_line_vector = lower_line_vector / np.linalg.norm(lower_line_vector)
+
+    #define orthogonal vectors to the lines, pointing inward to the cleft
+    upper_normal_vector = np.array([-upper_line_vector[1], upper_line_vector[0]])/8 #rotate +90°
+    lower_normal_vector = np.array([lower_line_vector[1], -lower_line_vector[0]])/8 #rotate -90°
+    # Normalize the vectors to length 1
+    upper_normal_vector = upper_normal_vector / np.linalg.norm(upper_normal_vector)
+    lower_normal_vector = lower_normal_vector / np.linalg.norm(lower_normal_vector)
+
+    print(lower_normal_vector)
+
+
+    ### Example Analysis for lower cleft edge:
+    #input:
+    origin = lower_border_intersection
+    #image
+
+    # 1. Define a position vector p for each pixel, that points from the boundary intersection to the pixel (apply on the whole image)
+
+    #Create a grid of pixel coordinates
+    height, width = image.shape
+    y, x = np.indices((height, width))  # y: row indices, x: column indices
+
+    # Step 4: Calculate vectors from the origin to each pixel
+    vectors_x = x - origin[0]  # x-coordinates of vectors
+    vectors_y = y - origin[1]  # y-coordinates of vectors
+
+    # Combine the x and y components into a single array of shape (height, width, 2)
+    positions = np.stack((vectors_x, vectors_y), axis=-1)
+
+    pos_w = np.sum(positions * lower_normal_vector, axis=-1)
+    pos_l = np.sum(positions * lower_line_vector, axis=-1)
+
+    plt.imshow(pos_l, cmap='seismic', vmin=-500, vmax = 500)
+    plt.show()
+
+
+
+    '''
+    plt.imshow(image, cmap='gray')
+    #plt.plot(line_intersection[0], line_intersection[1], marker='.', color='green')
+
+    plt.plot(upper_border_intersection[0], upper_border_intersection[1], marker='.', color='orange')
+    plt.arrow(upper_border_intersection[0], upper_border_intersection[1], upper_line_vector[0], upper_line_vector[1],head_width=2, head_length=3, fc='g', ec='g')
+    plt.arrow(upper_border_intersection[0], upper_border_intersection[1], upper_normal_vector[0], upper_normal_vector[1],head_width=10, head_length=15, fc='r', ec='r')
+
+    plt.plot(lower_border_intersection[0], lower_border_intersection[1], marker='.', color='red')
+    plt.arrow(lower_border_intersection[0], lower_border_intersection[1], lower_line_vector[0], lower_line_vector[1],head_width=10, head_length=15, fc='g', ec='g')
+    plt.arrow(lower_border_intersection[0], lower_border_intersection[1], lower_normal_vector[0], lower_normal_vector[1],head_width=10, head_length=15, fc='r', ec='r')
+    plt.show()
+    '''
+
+    

@@ -16,7 +16,7 @@ import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
 input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi') #Read in Aligned Data! 
-output_dir = Path(r'data\PhaseContrastCleft\P01\geoquant_filtered_images') 
+output_dir = Path(r'data\PhaseContrastCleft\P01\cleft_edge_flow') 
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
@@ -34,12 +34,12 @@ farneback_parameters = {"pyr_scale": 0.5,
                         "poly_n": 5,
                         "poly_sigma": 1.2,
                         "flags": 0}
-'''
+#'''
 print('Start Farneback Analysis')
 flowfield_stack = opflow.FlowFieldStack(image_stack, farneback_parameters, t0=0, tfin=Tmax, dt=1)
 print('Farneback Analysis Finished')
 print()
-'''
+#'''
 
 segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
 #flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
@@ -68,8 +68,8 @@ for T in np.arange(T0,T0+temp_scale,step):
     print(T)
 
     image = image_stack[T,...]
-    #meanflowfield = opflow.MeanFlowField(flowfield_stack[T:T+dT,...])
-    #defmap = opflow.calculateMagnitude(meanflowfield)
+    meanflowfield = opflow.MeanFlowField(flowfield_stack[T:T+dT,...])
+    defmap = opflow.calculateMagnitude(meanflowfield)
 
     # perform the segmentation
     cleft_mask, cleft_contour, front_mask, front_contour, edge_lines = Segmentation(image, segmentation_parameters)
@@ -108,13 +108,13 @@ for T in np.arange(T0,T0+temp_scale,step):
     origin = lower_border_intersection
     #image
 
-    # 1. Define a position vector p for each pixel, that points from the boundary intersection to the pixel (apply on the whole image)
+    ### Define a position vector p for each pixel, that points from the boundary intersection to the pixel (apply on the whole image)
 
-    #Create a grid of pixel coordinates
+    # Create a grid of pixel coordinates
     height, width = image.shape
     y, x = np.indices((height, width))  # y: row indices, x: column indices
 
-    # Step 4: Calculate vectors from the origin to each pixel
+    # Calculate vectors from the origin to each pixel
     vectors_x = x - origin[0]  # x-coordinates of vectors
     vectors_y = y - origin[1]  # y-coordinates of vectors
 
@@ -124,7 +124,30 @@ for T in np.arange(T0,T0+temp_scale,step):
     pos_w = np.sum(positions * lower_normal_vector, axis=-1)
     pos_l = np.sum(positions * lower_line_vector, axis=-1)
 
-    plt.imshow(pos_l, cmap='seismic', vmin=-500, vmax = 500)
+    ### Store pos_l, pos_w and doformation values in a dataframe for visualisation
+    #define max/min values for the l and w position (this defines the analysed ROI)
+    # Define min and max values for l and w
+    min_l, max_l = 50,1200
+    min_w, max_w = -500,500
+
+    # Create a mask for filtering based on the min and max values
+    mask = (pos_l >= min_l) & (pos_l <= max_l) & (pos_w >= min_w) & (pos_w <= max_w)
+
+    # Apply the mask to pos_l, pos_w, and deformation
+    filtered_l = pos_l[mask]
+    filtered_w = pos_w[mask]
+    filtered_deformation = defmap[mask]
+
+    # Plotting
+    plt.figure(figsize=(10, 8))
+    sc = plt.scatter(filtered_l, filtered_w, c=filtered_deformation, cmap='viridis', s=10)
+    plt.colorbar(sc, label='Deformation Value')
+    plt.xlabel('l')
+    plt.ylabel('w')
+    plt.title('Deformation in l-w Coordinate System')
+    plt.xlim(min_l, max_l)
+    plt.ylim(min_w, max_w)
+    plt.grid(True)
     plt.show()
 
 

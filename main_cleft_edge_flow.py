@@ -1,7 +1,7 @@
 from data_reader.reader import reader
 from output_generation.visualizer import visualizer
 import data_analysis.optical_flow as opflow
-import data_analysis.geometric_quantification as geoquant
+import data_analysis.cleft_edge_flow as cleft_edge_flow
 from data_segmentation.segmentation import Segmentation
 from data_segmentation.segmentation import compute_intersection
 from data_segmentation.segmentation import compute_left_border_intersection
@@ -78,7 +78,7 @@ for T in np.arange(T0,T0+temp_scale,step):
     left_border_intersection1 = compute_left_border_intersection(edge_lines[0], image)
     left_border_intersection2 = compute_left_border_intersection(edge_lines[1], image)
 
-    #oder the border intersections to define a upper and lower cleft edge
+    #order the border intersections to define a upper and lower cleft edge
     if left_border_intersection1[1] < left_border_intersection2[1]:
         upper_border_intersection = left_border_intersection1
         lower_border_intersection = left_border_intersection2
@@ -86,68 +86,69 @@ for T in np.arange(T0,T0+temp_scale,step):
         upper_border_intersection = left_border_intersection2
         lower_border_intersection = left_border_intersection1
 
-    #define vectors that point from the image boundaries to th eline intersection
-    upper_line_vector = line_intersection - upper_border_intersection
-    lower_line_vector = line_intersection - lower_border_intersection
-    # Normalize the vectors to length 1
-    upper_line_vector = upper_line_vector / np.linalg.norm(upper_line_vector)
-    lower_line_vector = lower_line_vector / np.linalg.norm(lower_line_vector)
-
-    #define orthogonal vectors to the lines, pointing inward to the cleft
-    upper_normal_vector = np.array([-upper_line_vector[1], upper_line_vector[0]])/8 #rotate +90°
-    lower_normal_vector = np.array([lower_line_vector[1], -lower_line_vector[0]])/8 #rotate -90°
-    # Normalize the vectors to length 1
-    upper_normal_vector = upper_normal_vector / np.linalg.norm(upper_normal_vector)
-    lower_normal_vector = lower_normal_vector / np.linalg.norm(lower_normal_vector)
-
-    print(lower_normal_vector)
+    ### define basis vectors for both cleft edges (line vector points in the direction of the line, normal vector points orthogonal into the cleft/tissue)
+    upper_line_vector, upper_normal_vector, lower_line_vector, lower_normal_vector = cleft_edge_flow.normalized_line_and_normal_vectors(line_intersection, lower_border_intersection, upper_border_intersection)
 
 
-    ### Example Analysis for lower cleft edge:
-    #input:
-    origin = lower_border_intersection
-    #image
+    ##### Example Analysis for the lower cleft edge:
+    ### The origin for each line is the respective border intersection of the line with the left image border
+    lower_origin = lower_border_intersection
+    ### Calculate Positions relative to new origin (return local positional component in line and width/normal direction)
+    pos_l, pos_w = cleft_edge_flow.positional_vector_transformation(image, lower_origin, lower_line_vector, lower_normal_vector)
 
-    ### Define a position vector p for each pixel, that points from the boundary intersection to the pixel (apply on the whole image)
 
-    # Create a grid of pixel coordinates
-    height, width = image.shape
-    y, x = np.indices((height, width))  # y: row indices, x: column indices
+    ### calculate the parallel and normal deformation components relative to the cleft edge
+    parallel_def, normal_def = cleft_edge_flow.deformation_projections(meanflowfield, lower_line_vector, lower_normal_vector)
 
-    # Calculate vectors from the origin to each pixel
-    vectors_x = x - origin[0]  # x-coordinates of vectors
-    vectors_y = y - origin[1]  # y-coordinates of vectors
 
-    # Combine the x and y components into a single array of shape (height, width, 2)
-    positions = np.stack((vectors_x, vectors_y), axis=-1)
+    ### Visualize pos_l, pos_w and deformation values in a l-w-plot
 
-    pos_w = np.sum(positions * lower_normal_vector, axis=-1)
-    pos_l = np.sum(positions * lower_line_vector, axis=-1)
 
-    ### Store pos_l, pos_w and doformation values in a dataframe for visualisation
-    #define max/min values for the l and w position (this defines the analysed ROI)
-    # Define min and max values for l and w
-    min_l, max_l = 50,1200
-    min_w, max_w = -500,500
+
+
+    #define max/min values for the l and w position (this defines the visualized ROI)
+    min_l, max_l = 100,1300 #length range in pixels from the origin
+    min_w, max_w = -200,200 #width range in pixels from the origin (positive is inside the cleft, negative outside)
 
     # Create a mask for filtering based on the min and max values
     mask = (pos_l >= min_l) & (pos_l <= max_l) & (pos_w >= min_w) & (pos_w <= max_w)
-
     # Apply the mask to pos_l, pos_w, and deformation
     filtered_l = pos_l[mask]
     filtered_w = pos_w[mask]
-    filtered_deformation = defmap[mask]
+    filtered_deformation = normal_def[mask]
 
-    # Plotting
-    plt.figure(figsize=(10, 8))
-    sc = plt.scatter(filtered_l, filtered_w, c=filtered_deformation, cmap='viridis', s=10)
+    ### Plotting
+    # Calculate the aspect ratio based on the range of x and y limits
+    aspect_ratio = (max_l - min_l) / (max_w - min_w)
+
+    # Assuming you want the width of the figure to be 10 inches
+    width_inch = 10
+    height_inch = width_inch / aspect_ratio  # Ensuring the l axis is longer than the w axis
+
+    plt.figure(figsize=(width_inch, height_inch))
+    sc = plt.scatter(filtered_l, filtered_w, c=filtered_deformation, cmap='seismic', s=10, vmin=-10, vmax=10)
     plt.colorbar(sc, label='Deformation Value')
-    plt.xlabel('l')
-    plt.ylabel('w')
-    plt.title('Deformation in l-w Coordinate System')
+    plt.xlabel('l', fontsize=14, weight='bold')
+    plt.ylabel('w', fontsize=14, weight='bold')
+    plt.title('Deformation in l-w Coordinate System', fontsize=16, weight='bold')
+
+    # Set the aspect ratio to 'auto' to allow custom sizing
+    plt.gca().set_aspect('auto')
+
+    # Define the x and y limits
     plt.xlim(min_l, max_l)
     plt.ylim(min_w, max_w)
-    plt.grid(True)
+
+    # Draw the l-axis vector
+    plt.arrow(min_l, 0, max_l-min_l, 0, fc='black', ec='black', linewidth=2, head_width=4, head_length=10, length_includes_head=True)
+
+    # Draw the w-axis vectors
+    plt.arrow(min_l, 0, 0, max_w, fc='black', ec='black', linewidth=2, head_width=4, head_length=10, length_includes_head=True)
+    plt.arrow(min_l, 0, 0, min_w, fc='black', ec='black', linewidth=2, head_width=4, head_length=10, length_includes_head=True)
+
+    # Enable grid
+    plt.grid(False)
+
     plt.show()
 
 

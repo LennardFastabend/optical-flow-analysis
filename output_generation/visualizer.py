@@ -325,6 +325,57 @@ class visualizer:
         plt.savefig(self.output_path / f'{filename}_{displacement_type}.png', dpi=600)  # save the figure to file
         plt.close()  # close the figure window
 
+    def saveCleftEdgeFlow(self, pos_l, pos_w, normal_def, parallel_def, filename, min_l, max_l, min_w, max_w, min_def=-10, max_def=10):
+        # Create a mask for filtering based on the min and max values
+        mask = (pos_l >= min_l) & (pos_l <= max_l) & (pos_w >= min_w) & (pos_w <= max_w)
+        # Apply the mask to pos_l, pos_w, and deformation
+        filtered_l = pos_l[mask]
+        filtered_w = pos_w[mask]
+        filtered_deformation_normal = normal_def[mask]
+        filtered_deformation_parallel = parallel_def[mask]
+
+        ### Plotting
+        # Calculate the aspect ratio based on the range of x and y limits
+        aspect_ratio = (max_l - min_l) / (max_w - min_w)
+
+        # Assuming you want the width of the figure to be 10 inches
+        width_inch = 10
+        height_inch = width_inch / aspect_ratio  # Ensuring the l axis is longer than the w axis
+
+        # Create a figure with two subplots stacked vertically
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(width_inch, height_inch * 2))  # height_inch * 2 for stacking subplots
+
+        # Plot in the first subplot
+        sc1 = ax1.scatter(filtered_l, filtered_w, c=filtered_deformation_normal, cmap='seismic', s=10, vmin=min_def, vmax=max_def)
+        ax1.set_xlabel('l', fontsize=14)
+        ax1.set_ylabel('w', fontsize=14)
+        ax1.set_title('Normal Deformation in l-w Coordinate System', fontsize=16)
+        ax1.set_xlim(min_l, max_l)
+        ax1.set_ylim(min_w, max_w)
+        ax1.plot([min_l, max_l], [0, 0], color='black', linewidth=2)
+        ax1.plot([min_l, min_l], [min_w, max_w], color='black', linewidth=2)
+        ax1.grid(True)
+        fig.colorbar(sc1, ax=ax1, label='Normal Deformation')
+
+        # Plot in the second subplot
+        sc2 = ax2.scatter(filtered_l, filtered_w, c=filtered_deformation_parallel, cmap='seismic', s=10, vmin=min_def, vmax=max_def)
+        ax2.set_xlabel('l', fontsize=14)
+        ax2.set_ylabel('w', fontsize=14)
+        ax2.set_title('Parallel Deformation in l-w Coordinate System', fontsize=16)
+        ax2.set_xlim(min_l, max_l)
+        ax2.set_ylim(min_w, max_w)
+        ax2.plot([min_l, max_l], [0, 0], color='black', linewidth=2)
+        ax2.plot([min_l, min_l], [min_w, max_w], color='black', linewidth=2)
+        ax2.grid(True)
+        fig.colorbar(sc2, ax=ax2, label='Parallel Deformation')
+
+        # Adjust layout to avoid overlap
+        plt.tight_layout()
+
+        # Save the plot
+        plt.savefig(self.output_path / filename, dpi=600)  # save the figure to file
+        plt.close()  # close the figure window
+
     def create_video(self, fps=30, interval=1):
         def natural_sort_key(s):
             import re

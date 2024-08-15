@@ -42,6 +42,7 @@ print()
 #'''
 
 segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
+cleft_edge_generator = visualizer(root_dir, output_dir/Path('cleft_edge_flow'))
 #flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
 #defmap_generator = visualizer(root_dir, output_dir/Path('defmap'))
 #geoquant_generator = visualizer(root_dir, output_dir/Path('ComponentGeoQuant'))
@@ -60,9 +61,9 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
                             "front_erosion_ksize": 3,
                             "front_erosion_iters": 3}
 
-T0=50
+T0=0
 step = 10
-temp_scale = 10
+temp_scale = 100
 
 for T in np.arange(T0,T0+temp_scale,step):
     print(T)
@@ -103,19 +104,23 @@ for T in np.arange(T0,T0+temp_scale,step):
 
     ### Visualize pos_l, pos_w and deformation values in a l-w-plot
 
-
-
-
     #define max/min values for the l and w position (this defines the visualized ROI)
     min_l, max_l = 100,1300 #length range in pixels from the origin
     min_w, max_w = -200,200 #width range in pixels from the origin (positive is inside the cleft, negative outside)
 
+    filename = 'LowerCleftEdge'+ str(T)
+    cleft_edge_generator.saveCleftEdgeFlow(pos_l, pos_w, normal_def, parallel_def, filename, min_l, max_l, min_w, max_w, min_def=-10, max_def=10)
+
+
+
+    '''
     # Create a mask for filtering based on the min and max values
     mask = (pos_l >= min_l) & (pos_l <= max_l) & (pos_w >= min_w) & (pos_w <= max_w)
     # Apply the mask to pos_l, pos_w, and deformation
     filtered_l = pos_l[mask]
     filtered_w = pos_w[mask]
-    filtered_deformation = normal_def[mask]
+    filtered_deformation_normal = normal_def[mask]
+    filtered_deformation_parallel = parallel_def[mask]
 
     ### Plotting
     # Calculate the aspect ratio based on the range of x and y limits
@@ -125,31 +130,43 @@ for T in np.arange(T0,T0+temp_scale,step):
     width_inch = 10
     height_inch = width_inch / aspect_ratio  # Ensuring the l axis is longer than the w axis
 
-    plt.figure(figsize=(width_inch, height_inch))
-    sc = plt.scatter(filtered_l, filtered_w, c=filtered_deformation, cmap='seismic', s=10, vmin=-10, vmax=10)
-    plt.colorbar(sc, label='Deformation Value')
-    plt.xlabel('l', fontsize=14, weight='bold')
-    plt.ylabel('w', fontsize=14, weight='bold')
-    plt.title('Deformation in l-w Coordinate System', fontsize=16, weight='bold')
+    # Create a figure with two subplots stacked vertically
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(width_inch, height_inch * 2))  # height_inch * 2 for stacking subplots
 
-    # Set the aspect ratio to 'auto' to allow custom sizing
-    plt.gca().set_aspect('auto')
+    # Plot in the first subplot
+    sc1 = ax1.scatter(filtered_l, filtered_w, c=filtered_deformation_normal, cmap='seismic', s=10, vmin=-10, vmax=10)
+    ax1.set_xlabel('l', fontsize=14)
+    ax1.set_ylabel('w', fontsize=14)
+    ax1.set_title('Normal Deformation in l-w Coordinate System', fontsize=16)
+    ax1.set_xlim(min_l, max_l)
+    ax1.set_ylim(min_w, max_w)
+    ax1.plot([min_l, max_l], [0, 0], color='black', linewidth=2)
+    ax1.plot([min_l, min_l], [min_w, max_w], color='black', linewidth=2)
+    ax1.grid(True)
+    fig.colorbar(sc1, ax=ax1, label='Normal Deformation')
 
-    # Define the x and y limits
-    plt.xlim(min_l, max_l)
-    plt.ylim(min_w, max_w)
+    # Plot in the second subplot
+    sc2 = ax2.scatter(filtered_l, filtered_w, c=filtered_deformation_parallel, cmap='seismic', s=10, vmin=-10, vmax=10)
+    ax2.set_xlabel('l', fontsize=14)
+    ax2.set_ylabel('w', fontsize=14)
+    ax2.set_title('Parallel Deformation in l-w Coordinate System', fontsize=16)
+    ax2.set_xlim(min_l, max_l)
+    ax2.set_ylim(min_w, max_w)
+    ax2.plot([min_l, max_l], [0, 0], color='black', linewidth=2)
+    ax2.plot([min_l, min_l], [min_w, max_w], color='black', linewidth=2)
+    ax2.grid(True)
+    fig.colorbar(sc2, ax=ax2, label='Parallel Deformation')
 
-    # Draw the l-axis vector
-    plt.arrow(min_l, 0, max_l-min_l, 0, fc='black', ec='black', linewidth=2, head_width=4, head_length=10, length_includes_head=True)
+    # Adjust layout to avoid overlap
+    plt.tight_layout()
 
-    # Draw the w-axis vectors
-    plt.arrow(min_l, 0, 0, max_w, fc='black', ec='black', linewidth=2, head_width=4, head_length=10, length_includes_head=True)
-    plt.arrow(min_l, 0, 0, min_w, fc='black', ec='black', linewidth=2, head_width=4, head_length=10, length_includes_head=True)
-
-    # Enable grid
-    plt.grid(False)
-
+    # Show the plot
     plt.show()
+    '''
+
+
+
+
 
 
 

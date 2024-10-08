@@ -405,7 +405,7 @@ def Segmentation(image, segpar):
     ### get the front contour
     front_contour = extract_contour_line(front_mask)
 
-    return cleft_mask, cleft_contour, front_mask, front_contour, rep_lines
+    return cleft_mask, cleft_contour, front_mask, front_contour, rep_lines, intersection_point
 
 '''
 ############################################################################################

@@ -13,18 +13,29 @@ import cv2
 import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
-input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi') #Read in Aligned Data! 
-output_dir = Path(r'data\PhaseContrastCleft\P01\geoquant_filtered_images') 
+
+#input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi')
+#input_dir = Path(r'data\PhaseContrastCleft\P02\input\P08#39_live_W03-P02_aligned.avi')
+input_dir = Path(r'data\PhaseContrastCleft\P06\input\P08#39_live_W03-P06.avi') #Read in Aligned Data!
+
+#input_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\TGF-b\input\P08#39_live_W07-P01.avi')
+
+output_dir = Path(r'data\PhaseContrastCleft\P06\directional_statistics_OptFlow_dt1') 
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
 ### Crop the image (resolves issues due to alignment of the images)
 t, y, x = image_stack.shape
-image_stack = image_stack[:, 100:y-100, 50:x-30] #crop the image
+image_stack = image_stack[150:300, 100:y-100, 100:x-10] #crop the image and select the time
+T_offset = 150
+
+#plt.imshow(image_stack[0,...])
+#plt.show()
+#sys.exit()
 
 ### calculate Example FlowFields for the defined time
 dT=1
-Tmax = 60
+Tmax = 100
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
                         "winsize": 5,#15,
@@ -34,12 +45,14 @@ farneback_parameters = {"pyr_scale": 0.5,
                         "flags": 0}
 
 print('Start Farneback Analysis')
-flowfield_stack = opflow.FlowFieldStack(image_stack, farneback_parameters, t0=0, tfin=Tmax, dt=1)
+dt_OptFlow = 1
+flowfield_stack = opflow.FlowFieldStack(image_stack, farneback_parameters, t0=0, tfin=Tmax-1, dt=dt_OptFlow)
 print('Farneback Analysis Finished')
+print(flowfield_stack.shape)
 print()
 
-segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
-flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
+#segmentation_generator = visualizer(root_dir, output_dir/Path('segmentation'))
+#flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
 #defmap_generator = visualizer(root_dir, output_dir/Path('defmap'))
 geoquant_generator = visualizer(root_dir, output_dir/Path('ComponentGeoQuant'))
 
@@ -57,34 +70,41 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
                             "front_erosion_ksize": 3,
                             "front_erosion_iters": 3}
 
-max_shown_distance = 1000
+max_shown_distance = 800
 max_shown_displacement = 15
 min_shown_displacement = -15
 
-T0=50
-step = 10
+T0=0
+step = 1
 
-temp_scale = 10
+temp_scale = Tmax
 
 df_parallel_list = []
 df_normal_list = []
 for T in np.arange(T0,T0+temp_scale,step):
     print(T)
 
+    #if T >= 8: 
+        #plt.imshow(image_stack[T,...])
+        #plt.show()
+
     image = image_stack[T,...]
     meanflowfield = opflow.MeanFlowField(flowfield_stack[T:T+dT,...])
     defmap = opflow.calculateMagnitude(meanflowfield)
 
     # perform the segmentation
-    cleft_mask, cleft_contour, front_mask, front_contour = Segmentation(image, segmentation_parameters)
-
+    cleft_mask, cleft_contour, front_mask, front_contour, representative_lines, intersection_point = Segmentation(image, segmentation_parameters)
+    # define x and y coordinates of the cleft tip
+    #intersec_x, intersec_y = intersection_point
+    
     # find max x coordinate of growth front
     #xmax_front = np.argmax(front_contour[:, 0])
     #print('xmax of growth front:', xmax_front)
 
     # define tissue region based on masks
     tissue_mask = cv2.subtract(cleft_mask, front_mask)
-
+    '''
+    ### Example Vis of Mask and Masked Defmap
     plt.imshow(tissue_mask, cmap='gray')
     plt.plot(front_contour[:, 0], front_contour[:, 1], marker='.', markersize=0.2, color='red', linestyle='-', linewidth=1)
     plt.plot(cleft_contour[:, 0], cleft_contour[:, 1], marker='.', markersize=0.2, color='green', linestyle='-', linewidth=1)
@@ -92,14 +112,13 @@ for T in np.arange(T0,T0+temp_scale,step):
 
     masked_defmap = defmap * tissue_mask/255
 
-    plt.imshow(masked_defmap, cmap='plasma', vmin=0, vmax=10)
-    plt.plot(front_contour[:, 0], front_contour[:, 1], marker='.', markersize=0.2, color='red', linestyle='-', linewidth=1)
-    plt.plot(cleft_contour[:, 0], cleft_contour[:, 1], marker='.', markersize=0.2, color='green', linestyle='-', linewidth=1)
+    plt.imshow(masked_defmap, cmap='plasma', vmin=0, vmax=60)
+    #plt.plot(front_contour[:, 0], front_contour[:, 1], marker='.', markersize=0.2, color='red', linestyle='-', linewidth=1)
+    #plt.plot(cleft_contour[:, 0], cleft_contour[:, 1], marker='.', markersize=0.2, color='green', linestyle='-', linewidth=1)
     plt.colorbar()
     plt.show()
-
     sys.exit()
-
+    #'''
     normal_vectors, distance_map = geoquant.ComputeNormalVectorField(tissue_mask, front_mask)
 
     FlowParallel, FlowNormal = geoquant.ComputeNormalAndParallelDisplacement(meanflowfield, normal_vectors)
@@ -107,29 +126,77 @@ for T in np.arange(T0,T0+temp_scale,step):
     xmax_front = np.argmax(front_contour[:, 0])
     df_parallel = geoquant.GeometricQuantificationDistanceMap(FlowParallel, tissue_mask, distance_map, xmax_front, dx=100)
     df_normal = geoquant.GeometricQuantificationDistanceMap(FlowNormal, tissue_mask, distance_map, xmax_front, dx=100)
+    ### Analysis of ROI along the central axis with width of +-dy pixels
+    #df_parallel = geoquant.GeometricQuantificationDistanceMapROI(FlowParallel, tissue_mask, distance_map, intersection_point, dy=50)
+    #df_normal = geoquant.GeometricQuantificationDistanceMapROI(FlowNormal, tissue_mask, distance_map, intersection_point, dy=50)
+    '''
+    ###Visualisation of Normal/parallel component of mean flow field as scatter plots
 
-    title_parallel = 'Displacement Parallel to the Growth Frant at Time: '+ str(T) + '-' + str(T+dT)
-    filename_parallel = 'geoquant_parallel' + str(T)
+    title_parallel = 'Displacement Parallel to the Growth Front at Time '+ str(T+T_offset) + ' with $dt_{OptFlow}$=' + str(dt_OptFlow)
+    filename_parallel = 'geoquant_parallel' + str(T+T_offset)
     geoquant_generator.saveGeometricQuantificationScatterPlot(df_parallel, max_shown_distance, min_shown_displacement, max_shown_displacement, title_parallel, filename_parallel, c='green')
-    title_normal = 'Displacement Normal to the Growth Frant at Time: '+ str(T) + '-' + str(T+dT)
-    filename_normal = 'geoquant_normal' + str(T)
+    title_normal = 'Displacement Normal to the Growth Front at Time: '+ str(T+T_offset) + ' with $dt_{OptFlow}$=' + str(dt_OptFlow)
+    filename_normal = 'geoquant_normal' + str(T+T_offset)
     geoquant_generator.saveGeometricQuantificationScatterPlot(df_normal, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal, c='red')
+    #'''
 
-    #df_parallel_list.append(df_parallel)
-    #df_normal_list.append(df_normal)
+    '''
+    ###Visualisation of Normal/parallel component of mean flow field as binned statistics
+    bin_size = 20
+
+    title_parallel = 'Displacement Parallel to the Growth Front at Time '+ str(T+T_offset) + ' with $dt_{OptFlow}$=' + str(dt_OptFlow)
+    filename_parallel = 'geoquant_parallel' + str(T+T_offset)
+    geoquant_generator.saveGeometricQuantificationBinnedStatistics(df_parallel, bin_size, max_shown_distance, min_shown_displacement, max_shown_displacement, title_parallel, filename_parallel)
+    title_normal = 'Displacement Normal to the Growth Front at Time: '+ str(T+T_offset) + ' with $dt_{OptFlow}$=' + str(dt_OptFlow)
+    filename_normal = 'geoquant_normal' + str(T+T_offset)
+    geoquant_generator.saveGeometricQuantificationBinnedStatistics(df_normal, bin_size, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal)
+    #'''
+
+
+    df_parallel_list.append(df_parallel)
+    df_normal_list.append(df_normal)
 
 '''
-title_parallel = 'Displacement Parallel to the Growth Frant at Time: '+ str(T0) + '-' + str(T0+temp_scale)
-filename_parallel = 'CumulativeGeoquant_parallel' + str(T0) + '-' + str(T0+temp_scale)
-geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_parallel_list, max_shown_distance, max_shown_displacement, title_parallel, filename_parallel, c='green') #Note: Set dT = 1 for this!!!
+### Visualisation of Cumulative Normal/Parallel component as scatter heat map (dT and step have to be 1!!!)
 
-title_normal = 'Displacement Normal to the Growth Frant at Time: '+ str(T0) + '-' + str(T0+temp_scale)
-filename_normal = 'CumulativeGeoquant_normal' + str(T0) + '-' + str(T0+temp_scale)
-geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_normal_list, max_shown_distance, max_shown_displacement, title_normal, filename_normal, c='red') #Note: Set dT = 1 for this!!!
+title_parallel = 'Displacement Parallel to the Growth Front at Time: '+ str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
+filename_parallel = 'CumulativeGeoquant_parallel' + str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
+geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_parallel_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_parallel, filename_parallel, c='green') #Note: Set dT = 1 for this!!!
+geoquant_generator.saveCumulativeGeometricQuantificationHeatMap(df_parallel_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_parallel, filename_parallel+str('Heatmap'))
+
+title_normal = 'Displacement Normal to the Growth Front at Time: '+ str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
+filename_normal = 'CumulativeGeoquant_normal' + str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
+geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_normal_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal, c='red') #Note: Set dT = 1 for this!!!
+geoquant_generator.saveCumulativeGeometricQuantificationHeatMap(df_normal_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal+str('Heatmap'))
 
 #segmentation_generator.saveSegmentationMasks(image, front_contour, cleft_contour, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
 #flowfield_generator.saveFlowField(image, meanflowfield, title='FlowField at Time: '+str(T)+'-'+str(T+dT), filename='FlowField'+str(T), step=20, epsilon=0)
-'''
+#'''
+
+#'''
+### Visualisation of Cumulative Normal/Parallel component as binned statistics (dT and step have to be 1!!!)
+
+bin_size = 20
+smoothing_winsize = 100
+
+title_parallel = 'Displacement Parallel to the Growth Front at Time: '+ str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
+filename_parallel = 'CumulativeGeoquant_parallel' + str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
+geoquant_generator.saveGeometricQuantificationCumulativeBinnedStatistics(df_parallel_list, bin_size, max_shown_distance, min_shown_displacement, max_shown_displacement, title_parallel, filename_parallel)
+geoquant_generator.saveGeometricQuantificationCumulativePercentileBands(df_parallel_list, smoothing_winsize, max_shown_distance, min_shown_displacement, max_shown_displacement, title_parallel, filename_parallel+str('PercentileBands'))
+
+title_normal = 'Displacement Normal to the Growth Front at Time: '+ str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
+filename_normal = 'CumulativeGeoquant_normal' + str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
+geoquant_generator.saveGeometricQuantificationCumulativeBinnedStatistics(df_normal_list, bin_size, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal)
+geoquant_generator.saveGeometricQuantificationCumulativePercentileBands(df_normal_list, smoothing_winsize, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal+str('PercentileBands'))
+#'''
+
+
+
+sys.exit()
+
+
+
+
 
 '''
 title_parallel = 'Displacement Parallel to the Growth Frant at Time: '+ str(T) + '-' + str(T+dT)
@@ -158,7 +225,11 @@ plt.close()    # close the figure window
 '''
 
 
-sys.exit()
+
+
+
+
+
 max_shown_distance = 1000
 max_shown_displacement = 15
 '''
@@ -195,6 +266,12 @@ for T in np.arange(T0,Tmax-step,step):
     filename = 'geoquant' + str(T)
     geoquant_generator.saveDirectionalGeometricQuantificationScatterPlot(df, max_shown_distance, max_shown_displacement, title, filename, displacement_type='x')
     geoquant_generator.saveDirectionalGeometricQuantificationScatterPlot(df, max_shown_distance, max_shown_displacement, title, filename, displacement_type='y')
+
+
+
+
+
+
 
 
 

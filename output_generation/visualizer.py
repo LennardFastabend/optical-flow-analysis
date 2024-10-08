@@ -198,7 +198,7 @@ class visualizer:
         plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close()    # close the figure window
 
-    def saveGeometricQuantificationBinnedStatistics(self,df, bin_size, max_shown_distance, max_shown_displacement, title, filename):
+    def saveGeometricQuantificationBinnedStatistics(self,df, bin_size, max_shown_distance, min_shown_displacement, max_shown_displacement, title, filename):
         # Define the bins for the distance values
         min_distance = df['distance'].min()
         max_distance = df['distance'].max()
@@ -224,7 +224,7 @@ class visualizer:
 
         # Set consistent axis limits
         plt.xlim(-1,max_shown_distance/bin_size)
-        plt.ylim(0,max_shown_displacement)
+        plt.ylim(min_shown_displacement,max_shown_displacement)
 
         plt.xlabel('Distance Bin')
         plt.ylabel('Mean Displacement')
@@ -235,6 +235,122 @@ class visualizer:
         plt.tight_layout()
         plt.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close()    # close the figure window
+
+
+
+    def saveGeometricQuantificationCumulativeBinnedStatistics(self, df_list, bin_size, max_shown_distance, min_shown_displacement, max_shown_displacement, title, filename):
+        # Combine all the dataframes into one
+        combined_df = pd.concat(df_list, ignore_index=True)
+
+        # Define the bins for the distance values
+        min_distance = combined_df['distance'].min()
+        max_distance = combined_df['distance'].max()
+        bins = np.arange(min_distance, max_shown_distance + bin_size, bin_size)
+
+        # Bin the distance values
+        combined_df['binned_distance'] = pd.cut(combined_df['distance'], bins, include_lowest=True)
+
+        # Calculate the mean and standard deviation for each binned distance
+        binned_stats = combined_df.groupby('binned_distance')['displacement'].agg(['mean', 'std']).reset_index()
+
+        # Prepare bin centers for plotting, instead of bin labels
+        bin_centers = bins[:-1] + bin_size / 2
+
+        # Plot the binned data with error bars
+        plt.figure(figsize=(10, 5))
+        plt.errorbar(
+            bin_centers,                 # X-axis: Bin centers
+            binned_stats['mean'],         # Y-axis: Mean displacement
+            yerr=binned_stats['std'],     # Error bars: Standard deviation
+            fmt='o',                      # Markers for the data points
+            ecolor='r',                   # Error bar color
+            capsize=5,                    # Cap size for error bars
+            label='Mean Displacement with Std. Dev.'
+        )
+
+        # Set consistent axis limits
+        plt.xlim(0, max_shown_distance)
+        plt.ylim(min_shown_displacement, max_shown_displacement)
+
+        plt.xlabel('Distance to Growth Front')
+        plt.ylabel('Mean Displacement')
+        plt.title(title)
+        plt.xticks(rotation=270)  # Rotate x-axis labels for better readability
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(self.output_path / filename, dpi=600)   # Save the figure to file
+        plt.close()    # Close the figure window
+
+    def saveGeometricQuantificationCumulativePercentileBands(self, df_list, smoothing_winsize, max_shown_distance, min_shown_displacement, max_shown_displacement, title, filename):
+        # Combine all the dataframes into one
+        combined_df = pd.concat(df_list, ignore_index=True)
+
+        # Sort the dataframe by distance
+        combined_df = combined_df.sort_values(by='distance')
+
+        # Calculate percentiles
+        percentiles = combined_df.groupby('distance')['displacement'].quantile([0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]).unstack()
+
+        # Prepare distance values (x-axis)
+        distances = percentiles.index
+
+        # Apply a rolling mean for smoothing the percentiles
+        smoothed_percentiles = percentiles.rolling(window=smoothing_winsize, center=True, min_periods=1).mean()
+
+        '''
+        def calculate_integral_of_median(smoothed_percentiles, distances):
+            # Extract the smoothed median values (50th percentile)
+            median_values = smoothed_percentiles[0.5]
+            # Calculate the integral using the trapezoidal rule
+            integral_value = np.trapz(median_values, distances)
+            return integral_value
+
+        integral_value = calculate_integral_of_median(smoothed_percentiles, distances)
+        print()
+        print(title)
+        print(f'Integral of the median curve: {integral_value}')
+        print()
+        #'''
+
+        # Plot the data
+        plt.figure(figsize=(10, 5))
+
+        # Define the transparency (alpha) for the percentiles
+        alpha_val = 0.5
+
+        # Plot the outer percentiles (1st to 99th)
+        plt.fill_between(distances, smoothed_percentiles[0.01], smoothed_percentiles[0.99], color='yellow', alpha=alpha_val, label='1st-99th Percentile')
+
+        # Plot the outer percentiles (10th to 90th)
+        plt.fill_between(distances, smoothed_percentiles[0.1], smoothed_percentiles[0.9], color='orange', alpha=alpha_val, label='10th-90th Percentile')
+
+        # Plot the 25th to 75th percentiles
+        plt.fill_between(distances, smoothed_percentiles[0.25], smoothed_percentiles[0.75], color='red', alpha=alpha_val, label='25th-75th Percentile')
+
+        # Plot the 50th percentile (median)
+        plt.plot(distances, smoothed_percentiles[0.5], color='black', label='50th Percentile (Median)', linewidth=2)
+
+        # Set axis limits
+        plt.xlim(0, max_shown_distance)
+        plt.ylim(min_shown_displacement, max_shown_displacement)
+
+        # Labels and title
+        plt.xlabel('Distance to Growth Front')
+        plt.ylabel('Displacement')
+        plt.title(title)
+
+        # Grid and legend
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+
+        # Save the plot to file
+        plt.savefig(self.output_path / filename, dpi=600)
+        plt.close()  # Close the figure window
+
+
+
 
     def saveGeometricQuantificationScatterPlot(self, df, max_shown_distance, min_shown_displacement, max_shown_displacement, title, filename, c='#1f77b4'):
         # Create the scatter plot
@@ -273,7 +389,7 @@ class visualizer:
         plt.savefig(self.output_path / filename, dpi=600)  # save the figure to file
         plt.close()  # close the figure window
 
-    def saveCumulativeGeometricQuantificationHeatMap(self, df_list, max_shown_distance, max_shown_displacement, title, filename, bins=1000, cmap='jet'):
+    def saveCumulativeGeometricQuantificationHeatMap(self, df_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title, filename, bins=1000, cmap='jet'):
         plt.figure(figsize=(10, 5))
         
         # Initialize arrays to hold all distance and displacement data
@@ -286,10 +402,10 @@ class visualizer:
             all_displacements = np.append(all_displacements, df['displacement'])
         
         # Create 2D histogram with the specified number of bins
-        heatmap, xedges, yedges = np.histogram2d(all_distances, all_displacements, bins=bins, range=[[0, max_shown_distance], [0, max_shown_displacement]])
+        heatmap, xedges, yedges = np.histogram2d(all_distances, all_displacements, bins=bins, range=[[0, max_shown_distance], [min_shown_displacement, max_shown_displacement]])
         
         # Plot heatmap with logarithmic color scale
-        plt.imshow(heatmap.T, extent=[0, max_shown_distance, 0, max_shown_displacement], origin='lower', aspect='auto', cmap=cmap, norm=LogNorm())
+        plt.imshow(heatmap.T, extent=[0, max_shown_distance, min_shown_displacement, max_shown_displacement], origin='lower', aspect='auto', cmap=cmap, norm=LogNorm(vmin=1, vmax=100))
         
         plt.colorbar(label='Density (log scale)')
         plt.xlabel('Distance to Growth Front')

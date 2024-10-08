@@ -14,7 +14,7 @@ shape = (t,y,x,component of vector)
 '''
 def FlowFieldStack(img_stack, par_dict, t0, tfin, dt=1):
     FlowField_list = []
-    for t in range(t0, tfin, dt):
+    for t in range(t0, tfin):
         img0 = img_stack[t, :, :]
         img1 = img_stack[t+dt, :, :]
         flow = cv2.calcOpticalFlowFarneback(img0, img1, None, par_dict["pyr_scale"], par_dict["levels"], par_dict["winsize"], par_dict["iterations"], par_dict["poly_n"], par_dict["poly_sigma"], par_dict["flags"])

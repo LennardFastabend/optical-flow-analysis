@@ -29,10 +29,10 @@ def GeometricQuantification(defmap, tissue_mask, front_contour_line, xmax_front,
 
 def GeometricQuantificationDistanceMap(defmap, tissue_mask, distance_map, xmax_front, dx=100):
     '''
-    Simple Geometric Quantification, that stores the deformation magnitude together with the distance to the growth front using a distance map
+    Simple Geometric Quantification, that stores the deformation value together with the distance to the growth front using a distance map
     '''
     data = []  # list to store (distance, deformation) value pairs
-    dx = 100  # maximum distance from growth front center for deformations to be considered
+    #dx = 100  # maximum distance from growth front center for deformations to be considered
     # Find the coordinates of non-zero points in the mask
     masked_pixels = np.column_stack(np.where(tissue_mask > 0))
     # Iterate over masked tissue deformation
@@ -49,6 +49,35 @@ def GeometricQuantificationDistanceMap(defmap, tissue_mask, distance_map, xmax_f
     # Convert the list of tuples to a pandas DataFrame
     df = pd.DataFrame(data, columns=['distance', 'displacement'])
     return df
+
+def GeometricQuantificationDistanceMapROI(defmap, tissue_mask, distance_map, intersection_point, dy=50):
+    '''
+    Geometric Quantification, that stores the deformation value together with the distance to the growth front using a distance map in a defined ROI
+    '''
+    intersec_x, intersec_y = intersection_point
+    data = []  # list to store (distance, deformation) value pairs
+    # Find the coordinates of non-zero points in the mask
+    masked_pixels = np.column_stack(np.where(tissue_mask > 0))
+    # Iterate over masked tissue deformation
+    for pixel in masked_pixels:
+        y = pixel[0]
+        x = pixel[1]
+        ### Only consider the deformations in a +-dy whide stripe along the central axis (assuming the symetry axis is parallesl to the x-axis) 
+        if y >= intersec_y - dy and y <= intersec_y + dy: 
+            # Access the precomputed distance from the distance_map
+            min_distance = distance_map[y, x]
+            # Access the pixel value in the image
+            pixel_value = defmap[y, x]
+            data.append((min_distance, pixel_value))
+
+    # Convert the list of tuples to a pandas DataFrame
+    df = pd.DataFrame(data, columns=['distance', 'displacement'])
+    return df
+
+
+
+
+
 
 def ComputeNormalVectorField(tissue_mask, front_mask):
     '''

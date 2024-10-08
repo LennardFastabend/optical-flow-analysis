@@ -6,6 +6,7 @@ import cv2
 from skimage import io
 from skimage.registration import phase_cross_correlation
 from scipy.ndimage import shift
+from skimage.filters import sobel
 
 def align_image_stack(image_stack):
     t, y, x = image_stack.shape
@@ -54,7 +55,6 @@ def align_image_stack_to_reference(image_stack, reference_image):
         registered_stack[i, :, :] = registered_image
 
     return registered_stack
-
 
 def save_image_stack_video(image_stack, filename):
     #Save as a video using OpenCV

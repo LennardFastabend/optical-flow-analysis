@@ -16,18 +16,20 @@ root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path 
 
 #input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi')
 #input_dir = Path(r'data\PhaseContrastCleft\P02\input\P08#39_live_W03-P02_aligned.avi')
-input_dir = Path(r'data\PhaseContrastCleft\P06\input\P08#39_live_W03-P06.avi') #Read in Aligned Data!
+#input_dir = Path(r'data\PhaseContrastCleft\P06\input\P08#39_live_W03-P06.avi') #Read in Aligned Data!
 
-#input_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\TGF-b\input\P08#39_live_W07-P01.avi')
+input_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\Blebbistatin\input\P08#39_live_W08-P01.avi')
 
-output_dir = Path(r'data\PhaseContrastCleft\P06\directional_statistics_OptFlow_dt1') 
+output_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\Blebbistatin\directional_statistics_OptFlow_dt50') 
+
+
 input_reader = reader(root_dir, input_dir)
 image_stack = input_reader.read_avi()
 
 ### Crop the image (resolves issues due to alignment of the images)
 t, y, x = image_stack.shape
-image_stack = image_stack[150:300, 100:y-100, 100:x-10] #crop the image and select the time
-T_offset = 150
+image_stack = image_stack[130:250, ...]  #100:y-100, 100:x-10] #crop the image and select the time
+T_offset = 130
 
 #plt.imshow(image_stack[0,...])
 #plt.show()
@@ -35,17 +37,17 @@ T_offset = 150
 
 ### calculate Example FlowFields for the defined time
 dT=1
-Tmax = 100
+Tmax = 60
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
                         "winsize": 5,#15,
                         "iterations": 3,
-                        "poly_n": 5,
+                        "poly_n": 5, #10,
                         "poly_sigma": 1.2,
                         "flags": 0}
 
 print('Start Farneback Analysis')
-dt_OptFlow = 1
+dt_OptFlow = 50
 flowfield_stack = opflow.FlowFieldStack(image_stack, farneback_parameters, t0=0, tfin=Tmax-1, dt=dt_OptFlow)
 print('Farneback Analysis Finished')
 print(flowfield_stack.shape)
@@ -71,8 +73,8 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
                             "front_erosion_iters": 3}
 
 max_shown_distance = 800
-max_shown_displacement = 15
-min_shown_displacement = -15
+max_shown_displacement = 60
+min_shown_displacement = -60
 
 T0=0
 step = 1

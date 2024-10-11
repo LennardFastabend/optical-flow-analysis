@@ -70,7 +70,7 @@ class visualizer:
         #plt.xlabel('x')
         #plt.ylabel('y')
         plt.axis('off')
-        plt.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale = 0.2, width=0.001, color=colormap(norm(colors))) #scale = 0.2
+        plt.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale = 1, width=0.001, color=colormap(norm(colors))) #scale = 0.2
         fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close(fig)    # close the figure window
 
@@ -78,7 +78,7 @@ class visualizer:
         fig, ax = plt.subplots(1)
         plt.imshow(DeformationMap, cmap='plasma', vmin=min, vmax=max)
         plt.title(title)
-        colorbar = plt.colorbar()
+        #colorbar = plt.colorbar()
         #colorbar.set_label('µm/h', labelpad=-35, y=1.08, rotation=0)
         #colorbar.set_ticks([0, 1, 2, 3, 4, 5])
         #colorbar.set_ticklabels([0, 0.65, 1.30, 1.95, 2.60, 3.25])
@@ -297,21 +297,6 @@ class visualizer:
 
         # Apply a rolling mean for smoothing the percentiles
         smoothed_percentiles = percentiles.rolling(window=smoothing_winsize, center=True, min_periods=1).mean()
-
-        '''
-        def calculate_integral_of_median(smoothed_percentiles, distances):
-            # Extract the smoothed median values (50th percentile)
-            median_values = smoothed_percentiles[0.5]
-            # Calculate the integral using the trapezoidal rule
-            integral_value = np.trapz(median_values, distances)
-            return integral_value
-
-        integral_value = calculate_integral_of_median(smoothed_percentiles, distances)
-        print()
-        print(title)
-        print(f'Integral of the median curve: {integral_value}')
-        print()
-        #'''
 
         # Plot the data
         plt.figure(figsize=(10, 5))

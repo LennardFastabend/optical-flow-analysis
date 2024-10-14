@@ -28,7 +28,7 @@ class visualizer:
         fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close(fig)    # close the figure window
 
-    def saveFlowField(self, prev_img, FlowField, title, filename, step=20, epsilon=0):
+    def saveFlowField(self, prev_img, FlowField, title, filename, step=20, epsilon=0, scale=1):
         Fx = FlowField[...,0]
         Fy = FlowField[...,1]
 
@@ -70,7 +70,7 @@ class visualizer:
         #plt.xlabel('x')
         #plt.ylabel('y')
         plt.axis('off')
-        plt.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale = 1, width=0.001, color=colormap(norm(colors))) #scale = 0.2
+        plt.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale = scale, width=0.001, color=colormap(norm(colors))) #scale = 0.2
         fig.savefig(self.output_path / filename, dpi=600)   # save the figure to file
         plt.close(fig)    # close the figure window
 

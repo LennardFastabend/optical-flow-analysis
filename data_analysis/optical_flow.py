@@ -24,6 +24,15 @@ def FlowFieldStack(img_stack, par_dict, t0, tfin, dt=1):
 
     return FlowField_stack
 
+
+'''
+Calculate a FlowField from a pair of previous and next image
+shape = (y,x,component of vector)
+'''
+def FlowField(img0, img1, par_dict):
+    flow = cv2.calcOpticalFlowFarneback(img0, img1, None, par_dict["pyr_scale"], par_dict["levels"], par_dict["winsize"], par_dict["iterations"], par_dict["poly_n"], par_dict["poly_sigma"], par_dict["flags"])
+    return flow
+
 '''
 Retun a mean FlowField of a given FlowFieldStack
 '''

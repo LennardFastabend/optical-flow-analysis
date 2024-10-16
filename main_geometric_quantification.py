@@ -14,13 +14,14 @@ import pandas as pd
 
 root_dir = Path(r'C:\Users\lenna\Documents\GitHub\optical-flow-analysis') #path to repository
 
-#input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi')
+input_dir = Path(r'data\PhaseContrastCleft\P01\input\Aligned\LinearStackAlignmentSift_Gauss5px.avi')
 #input_dir = Path(r'data\PhaseContrastCleft\P02\input\P08#39_live_W03-P02_aligned.avi')
 #input_dir = Path(r'data\PhaseContrastCleft\P06\input\P08#39_live_W03-P06.avi') #Read in Aligned Data!
 
-input_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\Blebbistatin\input\P08#39_live_W08-P01.avi')
+#input_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\Blebbistatin\input\P08#39_live_W08-P01.avi')
 
-output_dir = Path(r'data\PhaseContrastCleft\ContractilityComparisson\Blebbistatin\directional_statistics_OptFlow_dt50') 
+output_dir = Path(r'data\PhaseContrastCleft\P01\temporal_average\images') 
+
 
 
 input_reader = reader(root_dir, input_dir)
@@ -28,26 +29,24 @@ image_stack = input_reader.read_avi()
 
 ### Crop the image (resolves issues due to alignment of the images)
 t, y, x = image_stack.shape
-image_stack = image_stack[130:250, ...]  #100:y-100, 100:x-10] #crop the image and select the time
-T_offset = 130
+image_stack = image_stack[150:260, 100:y-100, 100:x-10] #crop the image and select the time
+T_offset = 150
 
-#plt.imshow(image_stack[0,...])
-#plt.show()
-#sys.exit()
+
 
 ### calculate Example FlowFields for the defined time
 dT=1
-Tmax = 60
+Tmax = 100
 farneback_parameters = {"pyr_scale": 0.5,
                         "levels": 3,
-                        "winsize": 5,#15,
+                        "winsize": 25,
                         "iterations": 3,
                         "poly_n": 5, #10,
                         "poly_sigma": 1.2,
                         "flags": 0}
 
 print('Start Farneback Analysis')
-dt_OptFlow = 50
+dt_OptFlow = 1
 flowfield_stack = opflow.FlowFieldStack(image_stack, farneback_parameters, t0=0, tfin=Tmax-1, dt=dt_OptFlow)
 print('Farneback Analysis Finished')
 print(flowfield_stack.shape)
@@ -57,6 +56,7 @@ print()
 #flowfield_generator = visualizer(root_dir, output_dir/Path('flowfields'))
 #defmap_generator = visualizer(root_dir, output_dir/Path('defmap'))
 geoquant_generator = visualizer(root_dir, output_dir/Path('ComponentGeoQuant'))
+flowfield_generator = visualizer(root_dir, output_dir/Path('FlowField'))
 
 # define segmentation parameters
 segmentation_parameters = { "cleft_gauss_ksize": 45,
@@ -73,8 +73,8 @@ segmentation_parameters = { "cleft_gauss_ksize": 45,
                             "front_erosion_iters": 3}
 
 max_shown_distance = 800
-max_shown_displacement = 60
-min_shown_displacement = -60
+max_shown_displacement = 20
+min_shown_displacement = -20
 
 T0=0
 step = 1
@@ -131,7 +131,7 @@ for T in np.arange(T0,T0+temp_scale,step):
     ### Analysis of ROI along the central axis with width of +-dy pixels
     #df_parallel = geoquant.GeometricQuantificationDistanceMapROI(FlowParallel, tissue_mask, distance_map, intersection_point, dy=50)
     #df_normal = geoquant.GeometricQuantificationDistanceMapROI(FlowNormal, tissue_mask, distance_map, intersection_point, dy=50)
-    '''
+    #'''
     ###Visualisation of Normal/parallel component of mean flow field as scatter plots
 
     title_parallel = 'Displacement Parallel to the Growth Front at Time '+ str(T+T_offset) + ' with $dt_{OptFlow}$=' + str(dt_OptFlow)
@@ -140,6 +140,8 @@ for T in np.arange(T0,T0+temp_scale,step):
     title_normal = 'Displacement Normal to the Growth Front at Time: '+ str(T+T_offset) + ' with $dt_{OptFlow}$=' + str(dt_OptFlow)
     filename_normal = 'geoquant_normal' + str(T+T_offset)
     geoquant_generator.saveGeometricQuantificationScatterPlot(df_normal, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal, c='red')
+
+    flowfield_generator.saveFlowField(image, meanflowfield, title='FlowField at Time: '+str(T+T_offset)+'-'+str(T+T_offset+dt_OptFlow), filename='FlowField'+str(T+T_offset), step=15, epsilon=0, scale=0.5)
     #'''
 
     '''
@@ -158,17 +160,17 @@ for T in np.arange(T0,T0+temp_scale,step):
     df_parallel_list.append(df_parallel)
     df_normal_list.append(df_normal)
 
-'''
+#'''
 ### Visualisation of Cumulative Normal/Parallel component as scatter heat map (dT and step have to be 1!!!)
 
 title_parallel = 'Displacement Parallel to the Growth Front at Time: '+ str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
 filename_parallel = 'CumulativeGeoquant_parallel' + str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
-geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_parallel_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_parallel, filename_parallel, c='green') #Note: Set dT = 1 for this!!!
+#geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_parallel_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_parallel, filename_parallel, c='green') #Note: Set dT = 1 for this!!!
 geoquant_generator.saveCumulativeGeometricQuantificationHeatMap(df_parallel_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_parallel, filename_parallel+str('Heatmap'))
 
 title_normal = 'Displacement Normal to the Growth Front at Time: '+ str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
 filename_normal = 'CumulativeGeoquant_normal' + str(T0+T_offset) + '-' + str(T0+temp_scale+T_offset)
-geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_normal_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal, c='red') #Note: Set dT = 1 for this!!!
+#geoquant_generator.saveCumulativeGeometricQuantificationScatterPlot(df_normal_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal, c='red') #Note: Set dT = 1 for this!!!
 geoquant_generator.saveCumulativeGeometricQuantificationHeatMap(df_normal_list, max_shown_distance, min_shown_displacement, max_shown_displacement, title_normal, filename_normal+str('Heatmap'))
 
 #segmentation_generator.saveSegmentationMasks(image, front_contour, cleft_contour, title='Segmentation at Time:'+str(T), filename='segmentation'+str(T))
